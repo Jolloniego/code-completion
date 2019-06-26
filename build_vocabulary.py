@@ -65,7 +65,7 @@ def build_vocab(data):
 
 if __name__ == "__main__":
     data = read_data('data/train.txt')
-    print(len(data))
+    print("Loaded {} files".format(len(data)))
     vocab = build_vocab(data)
-    print(len(vocab))
+    print("Vocabulary size is:", len(vocab))
     pickle.dump(vocab, open("vocab.p", "wb"), protocol=pickle.HIGHEST_PROTOCOL)

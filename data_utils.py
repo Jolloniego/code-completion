@@ -19,11 +19,12 @@ def read_data(data_path):
             with open(filename, 'r') as current_file:
                 tokens = tokenize.generate_tokens(current_file.readline)
 
-                # Dont process comments, block comments or empty tokens
+                # Dont process comments, newlines, block comments or empty tokens
                 data.append([preprocess(t_type, t_val) for t_type, t_val, _, _, _ in tokens
                              if t_type != tokenize.COMMENT and
                              not t_val.startswith("'''") and
                              not t_val.startswith('"""') and
+                             # not t_val == '\n' and
                             (t_type == tokenize.DEDENT or t_val != "")])
 
         except:

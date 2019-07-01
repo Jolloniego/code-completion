@@ -8,9 +8,9 @@ OOV_TOKEN, OOV_IDX = '<OOV>', 0
 PAD_TOKEN, PAD_IDX = '<PAD>', 1
 
 
-def read_data(data_path):
+def read_data(data_file_path):
     data = []
-    with open(data_path, 'r') as train_db:
+    with open(data_file_path, 'r') as train_db:
         python_files = [x for x in train_db.read().splitlines()]
 
     # Read each code file to be used from the specified path

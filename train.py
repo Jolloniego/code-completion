@@ -1,3 +1,4 @@
+import time
 import model
 import torch
 import pickle
@@ -14,8 +15,10 @@ NUM_EPOCHS = 30
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
-word_to_idx = pickle.load(open('vocab.p', 'rb'))
-ixd_to_word = {key: word for key, word in enumerate(word_to_idx)}
+word_to_idx = pickle.load(open('data/vocab.p', 'rb'))
+
+# Not needed for now.
+# ixd_to_word = {key: word for key, word in enumerate(word_to_idx)}
 
 
 def prepare_data(data_path, batch_size, seq_len):
@@ -44,6 +47,8 @@ model = model.DummyModel(len(word_to_idx), 300)
 criterion = nn.CrossEntropyLoss()
 optimiser = optim.Adam(model.parameters(), lr=0.001)
 
+start = time.time()
+
 for epoch in range(NUM_EPOCHS):
     model.train()
 
@@ -65,8 +70,8 @@ for epoch in range(NUM_EPOCHS):
 
         epoch_loss += loss.data
 
-    print(epoch_loss)
+    print("Epoch {} | Loss {} | Time taken {:.2f} seconds".format(epoch, epoch_loss, time.time() - start))
 
-print("asd")
+print("Done Training, total time taken: ", time.time() -start)
 
 

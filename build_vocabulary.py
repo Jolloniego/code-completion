@@ -24,4 +24,4 @@ if __name__ == "__main__":
     print("Loaded {} files".format(len(data)))
     vocab = build_vocab(data)
     print("Vocabulary size is:", len(vocab))
-    pickle.dump(vocab, open("vocab.p", "wb"), protocol=pickle.HIGHEST_PROTOCOL)
+    pickle.dump(vocab, open("data/vocab.p", "wb"), protocol=pickle.HIGHEST_PROTOCOL)

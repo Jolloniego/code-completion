@@ -7,6 +7,7 @@ import data_utils as du
 # Argument parsing
 parser = argparse.ArgumentParser()
 parser.add_argument('--vocab_data', type=str, help='Path to file containing paths to the data to use.')
+parser.add_argument('--data_root', type=str, help='Path root folder containing the cloned repositories.')
 args = parser.parse_args()
 
 
@@ -26,7 +27,8 @@ def build_vocab(dataset):
 
 if __name__ == "__main__":
     data_for_vocab = args.vocab_data
-    data = du.read_data(data_for_vocab)
+    data_root = args.data_root
+    data = du.read_data(data_for_vocab, data_root)
     print("Loaded {} files".format(len(data)))
     vocab = build_vocab(data)
     print("Vocabulary size is:", len(vocab))

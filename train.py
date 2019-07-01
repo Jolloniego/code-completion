@@ -13,19 +13,26 @@ from model import DummyModel
 parser = argparse.ArgumentParser()
 parser.add_argument('--data_root', type=str, default='data/repos',
                     help='Path root folder containing the cloned repositories.')
-parser.add_argument('--files_split', type=str, default='data',
-                    help='Path to the directory containing the train, test and valid.txt files')
+parser.add_argument('--vocab_path', type=str, default='data/vocab.p', help='Path to vocab.p file.')
+# Files containing paths to data
+parser.add_argument('--train_files', type=str, default='data/train.txt',
+                    help='Path to file containing the training data split.')
+parser.add_argument('--val_files', type=str, default='data/validation.txt',
+                    help='Path to file containing the validation data split.')
+parser.add_argument('--test_files', type=str, default='data/test.txt',
+                    help='Path to file containing the test data split.')
+# Run configurations
+parser.add_argument('--mode', type=str, default='train', help='train or test')
 parser.add_argument('--cuda', type=str,
                     help='Cuda card to use, format: "cuda:int_number". Leave unused to use CPU')
-parser.add_argument('--mode', type=str, default='train', help='train or test')
+# Hyperparameters
+parser.add_argument('--batch_size', type=int, default=32, help='Batch size to use.')
+parser.add_argument('--seq_length', type=int, default=10, help='Sequence lengths to use.')
+parser.add_argument('--epochs', type=int, default=10, help='Epochs to train for.')
 
 args = parser.parse_args()
 
-BATCH_SIZE = 32
-SEQ_LEN = 10
-NUM_EPOCHS = 30
-
-word_to_idx = pickle.load(open('data/vocab.p', 'rb'))
+word_to_idx = pickle.load(open(args.vocab_path, 'rb'))
 
 # Not needed for now.
 # ixd_to_word = {key: word for key, word in enumerate(word_to_idx)}
@@ -52,23 +59,23 @@ def generate_batches(inputs, outputs, batch_size, seq_len):
 
 
 def train():
-    ins, outs = prepare_data(os.path.join(args.files_split, 'train.txt'), BATCH_SIZE, SEQ_LEN)
+    ins, outs = prepare_data(args.train_files, args.batch_size, args.seq_length)
 
-    model = DummyModel(len(word_to_idx), 300)
-    criterion = nn.CrossEntropyLoss()
+    model = DummyModel(len(word_to_idx), 300).to(device)
+    criterion = nn.CrossEntropyLoss().to(device)
     optimiser = optim.Adam(model.parameters(), lr=0.001)
 
     start = time.time()
 
-    for epoch in range(NUM_EPOCHS):
+    for epoch in range(args.epochs):
         model.train()
 
         epoch_loss = 0
-        for x, y in generate_batches(ins, outs, BATCH_SIZE, SEQ_LEN):
+        for x, y in generate_batches(ins, outs, args.batch_size, args.seq_length):
             model.zero_grad()
 
-            x = torch.LongTensor(x)
-            y = torch.LongTensor(y)
+            x = torch.LongTensor(x).to(device)
+            y = torch.LongTensor(y).to(device)
 
             # Get the predictions and compute the loss
             preds = model(x)

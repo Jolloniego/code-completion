@@ -3,6 +3,7 @@ import time
 import torch
 import pickle
 import argparse
+import itertools
 import numpy as np
 import torch.nn as nn
 import data_utils as du
@@ -39,7 +40,7 @@ word_to_idx = pickle.load(open(args.vocab_path, 'rb'))
 
 def vecotrize_and_pad_data(data):
     result = []
-    data = data.ravel()
+    data = np.array(list(itertools.chain(*data)))
     newlines = np.where(data == '\n')[0]
 
     start_idx = 0
@@ -56,7 +57,7 @@ def vecotrize_and_pad_data(data):
 def prepare_data(data_file_path):
     start = time.time()
     print("Loading all the data")
-    data = np.array(du.read_data(data_file_path, args.data_root))
+    data = du.read_data(data_file_path, args.data_root)
     data = vecotrize_and_pad_data(data)
     print("Data loaded and padded/trimmed in {:.4f} seconds".format(time.time() - start))
 

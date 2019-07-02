@@ -1,3 +1,4 @@
+import math
 import time
 import torch
 import pickle
@@ -26,7 +27,7 @@ parser.add_argument('--cuda', type=str,
                     help='Cuda card to use, format: "cuda:int_number". Leave unused to use CPU')
 # Hyperparameters
 parser.add_argument('--batch_size', type=int, default=32, help='Batch size to use.')
-parser.add_argument('--seq_length', type=int, default=10, help='Sequence lengths to use.')
+parser.add_argument('--seq_length', type=int, default=20, help='Sequence lengths to use.')
 parser.add_argument('--epochs', type=int, default=10, help='Epochs to train for.')
 
 args = parser.parse_args()
@@ -36,37 +37,49 @@ word_to_idx = pickle.load(open(args.vocab_path, 'rb'))
 # ixd_to_word = {key: word for key, word in enumerate(word_to_idx)}
 
 
-def prepare_data(data_file_path, batch_size, seq_len):
+def vecotrize_and_pad_data(data):
+    result = []
+    data = data.ravel()
+    newlines = np.where(data == '\n')[0]
+
+    start_idx = 0
+    for newline_idx in newlines:
+        current_line = [word_to_idx.get(word, du.OOV_IDX) for word in data[start_idx:newline_idx][:args.seq_length]]
+        current_line = np.pad(current_line, (0, args.seq_length - len(current_line)), mode='constant', constant_values=du.PAD_IDX)
+
+        result.append(current_line)
+        start_idx = newline_idx + 1
+
+    return np.array(result)
+
+
+def prepare_data(data_file_path):
     start = time.time()
     print("Loading all the data")
-    data = du.read_data(data_file_path, args.data_root)
-    print("Data loaded in {:.4f} seconds".format(time.time() - start))
-
-    print("Converting text to int")
-    start = time.time()
-    text_to_int = np.array([[word_to_idx.get(word, du.OOV_IDX) for word in file] for file in data if file != []]).flatten()
-    print("Done converting data in {:.4f} seconds".format(time.time() - start))
+    data = np.array(du.read_data(data_file_path, args.data_root))
+    data = vecotrize_and_pad_data(data)
+    print("Data loaded and padded/trimmed in {:.4f} seconds".format(time.time() - start))
 
     print("Creating batches of data")
     start = time.time()
-    num_batches = int(len(text_to_int) / (seq_len * batch_size))
-    prepared_inputs = text_to_int[:num_batches * batch_size * seq_len]
-    prepared_outputs = np.zeros_like(prepared_inputs)
-    prepared_outputs[:-1] = prepared_inputs[1:]
-    prepared_outputs[-1] = prepared_inputs[0]
+    prepared_outputs = np.zeros_like(data)
+    prepared_outputs[:-1] = data[1:]
+    prepared_outputs[-1] = data[0]
     print("Batches completed in {:.4f} seconds".format(time.time() - start))
 
-    return prepared_inputs.reshape((batch_size, -1)), prepared_outputs.reshape((batch_size, -1))
+    return data, prepared_outputs
 
 
-def generate_batches(inputs, outputs, batch_size, seq_len):
-    num_batches = np.prod(inputs.shape) // (seq_len * batch_size)
-    for i in range(0, num_batches * seq_len, seq_len):
-        yield inputs[:, i:i + seq_len], outputs[:, i:i + seq_len]
+def generate_batches(inputs, outputs):
+    num_batches = math.ceil(len(inputs) / args.batch_size)
+    for i in range(0, num_batches):
+        start_idx = i * args.batch_size
+        end_idx = args.batch_size + start_idx
+        yield inputs[start_idx: end_idx], outputs[start_idx: end_idx]
 
 
 def train():
-    ins, outs = prepare_data(args.train_files, args.batch_size, args.seq_length)
+    ins, outs = prepare_data(args.train_files)
 
     model = DummyModel(len(word_to_idx), 300).to(device)
     criterion = nn.CrossEntropyLoss().to(device)
@@ -78,7 +91,7 @@ def train():
         model.train()
 
         epoch_loss = 0
-        for x, y in generate_batches(ins, outs, args.batch_size, args.seq_length):
+        for x, y in generate_batches(ins, outs):
             model.zero_grad()
 
             x = torch.LongTensor(x).to(device)

@@ -8,6 +8,9 @@ DEDENT_TOKEN = '<DED>'
 OOV_TOKEN, OOV_IDX = '<OOV>', 0
 PAD_TOKEN, PAD_IDX = '<PAD>', 1
 
+# Used to remove whitespaces but not newlines
+translate_table = str.maketrans(dict.fromkeys(' '))
+
 
 def read_data(data_file_path, data_root):
     data = []
@@ -21,12 +24,13 @@ def read_data(data_file_path, data_root):
                 tokens = tokenize.generate_tokens(current_file.readline)
 
                 # Dont process comments, newlines, block comments or empty tokens
-                data.append([preprocess(t_type, t_val) for t_type, t_val, _, _, _ in tokens
-                             if t_type != tokenize.COMMENT and
-                             not t_val.startswith("'''") and
-                             not t_val.startswith('"""') and
-                             # not t_val == '\n' and
-                            (t_type == tokenize.DEDENT or t_val != "")])
+                processed_tokens = [preprocess(t_type, t_val) for t_type, t_val, _, _, _ in tokens
+                                    if t_type != tokenize.COMMENT and
+                                    not t_val.startswith("'''") and
+                                    not t_val.startswith('"""') and
+                                    (t_type == tokenize.DEDENT or t_val != "")]
+                if processed_tokens:
+                    data.append(processed_tokens)
 
         except:
             print("Error with file:", filename)
@@ -43,4 +47,4 @@ def preprocess(token_type, token_val):
         return DEDENT_TOKEN
     if token_type == tokenize.STRING:
         return STR_TOKEN
-    return token_val
+    return token_val.translate(translate_table)

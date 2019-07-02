@@ -31,17 +31,14 @@ parser.add_argument('--epochs', type=int, default=10, help='Epochs to train for.
 
 args = parser.parse_args()
 
-start = time.time()
-print("Loading vocabulary object")
 word_to_idx = pickle.load(open(args.vocab_path, 'rb'))
-print("Done loading vocabulary | {:.4f} seconds".format(time.time() - start))
-
 # Not needed for now.
 # ixd_to_word = {key: word for key, word in enumerate(word_to_idx)}
 
 
 def prepare_data(data_file_path, batch_size, seq_len):
     start = time.time()
+    print("Loading all the data")
     data = du.read_data(data_file_path, args.data_root)
     print("Data loaded in {:.4f} seconds".format(time.time() - start))
 

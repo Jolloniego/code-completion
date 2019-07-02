@@ -61,12 +61,9 @@ def prepare_data(data_file_path):
     data = vecotrize_and_pad_data(data)
     print("Data loaded and padded/trimmed in {:.4f} seconds".format(time.time() - start))
 
-    print("Creating batches of data")
-    start = time.time()
     prepared_outputs = np.zeros_like(data)
     prepared_outputs[:-1] = data[1:]
     prepared_outputs[-1] = data[0]
-    print("Batches completed in {:.4f} seconds".format(time.time() - start))
 
     return data, prepared_outputs
 
@@ -100,7 +97,7 @@ def train():
 
             # Get the predictions and compute the loss
             preds = model(x)
-            loss = criterion(preds.view(-1, 90), y.view(-1))
+            loss = criterion(preds.view(-1, len(word_to_idx)), y.view(-1))
 
             # Backprop the loss and update params
             loss.backward()

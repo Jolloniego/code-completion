@@ -1,4 +1,3 @@
-import os
 import time
 import torch
 import pickle
@@ -32,22 +31,33 @@ parser.add_argument('--epochs', type=int, default=10, help='Epochs to train for.
 
 args = parser.parse_args()
 
+start = time.time()
+print("Loading vocabulary object")
 word_to_idx = pickle.load(open(args.vocab_path, 'rb'))
+print("Done loading vocabulary | {:.4f} seconds".format(time.time() - start))
 
 # Not needed for now.
 # ixd_to_word = {key: word for key, word in enumerate(word_to_idx)}
 
 
 def prepare_data(data_file_path, batch_size, seq_len):
+    start = time.time()
     data = du.read_data(data_file_path, args.data_root)
+    print("Data loaded in {:.4f} seconds".format(time.time() - start))
 
+    print("Converting text to int")
+    start = time.time()
     text_to_int = np.array([[word_to_idx[word] for word in file] for file in data if file != []]).flatten()
+    print("Done converting data in {:.4f} seconds".format(time.time() - start))
 
+    print("Creating batches of data")
+    start = time.time()
     num_batches = int(len(text_to_int) / (seq_len * batch_size))
     prepared_inputs = text_to_int[:num_batches * batch_size * seq_len]
     prepared_outputs = np.zeros_like(prepared_inputs)
     prepared_outputs[:-1] = prepared_inputs[1:]
     prepared_outputs[-1] = prepared_inputs[0]
+    print("Batches completed in {:.4f} seconds".format(time.time() - start))
 
     return prepared_inputs.reshape((batch_size, -1)), prepared_outputs.reshape((batch_size, -1))
 
@@ -87,7 +97,7 @@ def train():
 
             epoch_loss += loss.data
 
-        print("Epoch {} | Loss {} | Time taken {:.2f} seconds".format(epoch, epoch_loss, time.time() - start))
+        print("Epoch {} | Loss {:.10} | Time taken {:.2f} seconds".format(epoch, epoch_loss, time.time() - start))
 
     print("Done Training, total time taken: ", time.time() - start)
 

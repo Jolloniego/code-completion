@@ -44,7 +44,7 @@ def prepare_data(data_file_path, batch_size, seq_len):
 
     print("Converting text to int")
     start = time.time()
-    text_to_int = np.array([[word_to_idx[word] for word in file] for file in data if file != []]).flatten()
+    text_to_int = np.array([[word_to_idx.get(word, du.OOV_IDX) for word in file] for file in data if file != []]).flatten()
     print("Done converting data in {:.4f} seconds".format(time.time() - start))
 
     print("Creating batches of data")

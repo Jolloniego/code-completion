@@ -1,3 +1,4 @@
+import numpy as np
 import torch.nn as nn
 
 
@@ -13,5 +14,10 @@ class DummyModel(nn.Module):
     def forward(self, code_line):
         embeds = self.embeddings(code_line)
         lstm_out, _ = self.lstm(embeds)
-        logits = self.dense(lstm_out)  # [:, -1])
+        logits = self.dense(lstm_out)
         return logits
+
+    def summary(self):
+        model_parameters = filter(lambda p: p.requires_grad, self.parameters())
+        params = sum([np.prod(p.size()) for p in model_parameters])
+        return params

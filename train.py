@@ -80,8 +80,11 @@ def train():
     ins, outs = prepare_data(args.train_files)
 
     model = DummyModel(len(word_to_idx), 300).to(device)
+    print("The model has {} trainable parameters.".format(model.summary()))
     criterion = nn.CrossEntropyLoss().to(device)
     optimiser = optim.Adam(model.parameters(), lr=0.001)
+
+    input("Pause for memory usage testing")
 
     start = time.time()
 

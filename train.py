@@ -84,8 +84,6 @@ def train():
     criterion = nn.CrossEntropyLoss().to(device)
     optimiser = optim.Adam(model.parameters(), lr=0.001)
 
-    input("Pause for memory usage testing")
-
     start = time.time()
 
     for epoch in range(args.epochs):
@@ -93,7 +91,7 @@ def train():
 
         epoch_loss = 0
         for x, y in generate_batches(ins, outs):
-            model.zero_grad()
+            optimiser.zero_grad()
 
             x = torch.LongTensor(x).to(device)
             y = torch.LongTensor(y).to(device)
@@ -106,7 +104,7 @@ def train():
             loss.backward()
             optimiser.step()
 
-            epoch_loss += loss.data
+            epoch_loss += loss.item()
 
         print("Epoch {} | Loss {:.10} | Time taken {:.2f} seconds".format(epoch, epoch_loss, time.time() - start))
 

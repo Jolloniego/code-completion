@@ -1,14 +1,11 @@
-import math
 import time
 import torch
 import pickle
 import argparse
-import itertools
-import numpy as np
 import torch.nn as nn
-import data_utils as du
 import torch.optim as optim
 from model import DummyModel
+from code_dataset import CodeDataset, CodeDatasetBatcher
 
 # Argument parsing
 parser = argparse.ArgumentParser()
@@ -38,46 +35,9 @@ word_to_idx = pickle.load(open(args.vocab_path, 'rb'))
 # ixd_to_word = {key: word for key, word in enumerate(word_to_idx)}
 
 
-def vecotrize_and_pad_data(data):
-    result = []
-    data = np.array(list(itertools.chain(*data)))
-    newlines = np.where(data == '\n')[0]
-
-    start_idx = 0
-    for newline_idx in newlines:
-        current_line = [word_to_idx.get(word, du.OOV_IDX) for word in data[start_idx:newline_idx][:args.seq_length]]
-        current_line = np.pad(current_line, (0, args.seq_length - len(current_line)), mode='constant', constant_values=du.PAD_IDX)
-
-        result.append(current_line)
-        start_idx = newline_idx + 1
-
-    return np.array(result)
-
-
-def prepare_data(data_file_path):
-    start = time.time()
-    print("Loading all the data")
-    data = du.read_data(data_file_path, args.data_root)
-    data = vecotrize_and_pad_data(data)
-    print("Data loaded and padded/trimmed in {:.4f} seconds".format(time.time() - start))
-
-    prepared_outputs = np.zeros_like(data)
-    prepared_outputs[:-1] = data[1:]
-    prepared_outputs[-1] = data[0]
-
-    return data, prepared_outputs
-
-
-def generate_batches(inputs, outputs):
-    num_batches = math.ceil(len(inputs) / args.batch_size)
-    for i in range(0, num_batches):
-        start_idx = i * args.batch_size
-        end_idx = args.batch_size + start_idx
-        yield inputs[start_idx: end_idx], outputs[start_idx: end_idx]
-
-
 def train():
-    ins, outs = prepare_data(args.train_files)
+    dataset = CodeDataset(args.train_files, args.data_root, args.seq_length, word_to_idx)
+    dataset_batcher = CodeDatasetBatcher(dataset, args.batch_size)
 
     model = DummyModel(len(word_to_idx), 300).to(device)
     print("The model has {} trainable parameters.".format(model.summary()))
@@ -88,13 +48,15 @@ def train():
 
     for epoch in range(args.epochs):
         model.train()
-
         epoch_loss = 0
-        for x, y in generate_batches(ins, outs):
+
+        # Get current training batch
+        sample = dataset_batcher.get_batch()
+        while sample is not None:
             optimiser.zero_grad()
 
-            x = torch.LongTensor(x).to(device)
-            y = torch.LongTensor(y).to(device)
+            x = torch.LongTensor(sample[0]).to(device)
+            y = torch.LongTensor(sample[1]).to(device)
 
             # Get the predictions and compute the loss
             preds = model(x)
@@ -104,9 +66,15 @@ def train():
             loss.backward()
             optimiser.step()
 
-            epoch_loss += loss.item()
+            epoch_loss += loss.item() / len(x)
+
+            # Get the next batch
+            sample = dataset_batcher.get_batch()
 
         print("Epoch {} | Loss {:.10} | Time taken {:.2f} seconds".format(epoch, epoch_loss, time.time() - start))
+
+        # Reset the batcher
+        dataset_batcher.reset_batcher()
 
     print("Done Training, total time taken: ", time.time() - start)
 

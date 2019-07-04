@@ -27,6 +27,7 @@ parser.add_argument('--cuda', type=str,
 parser.add_argument('--batch_size', type=int, default=32, help='Batch size to use.')
 parser.add_argument('--seq_length', type=int, default=20, help='Sequence lengths to use.')
 parser.add_argument('--epochs', type=int, default=10, help='Epochs to train for.')
+parser.add_argument('--grad_clip', type=int, default=0.25, help='Gradient clipping.')
 
 args = parser.parse_args()
 
@@ -64,6 +65,8 @@ def train():
 
             # Backprop the loss and update params
             loss.backward()
+
+            torch.nn.utils.clip_grad_norm_(model.parameters(), args.grad_clip)
             optimiser.step()
 
             epoch_loss += loss.item() / len(x)

@@ -30,7 +30,6 @@ class CodeDataset(Dataset):
 
     def __getitem__(self, idx):
         filename = self.code_files[idx]
-        print("Loading File:", filename)
         sample_tokens = self.__obtain_tokens(filename)
         sample_tokens = self.__vecotrize_and_pad(sample_tokens)
 

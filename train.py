@@ -2,10 +2,16 @@ import time
 import torch
 import pickle
 import argparse
+import numpy as np
 import torch.nn as nn
 import torch.optim as optim
 from model import DummyModel
 from code_dataset import CodeDataset, CodeDatasetBatcher
+
+# Fix random seeds for reproducibility
+np.random.seed(2019)
+torch.manual_seed(2019)
+torch.set_default_dtype(torch.float64)
 
 # Argument parsing
 parser = argparse.ArgumentParser()

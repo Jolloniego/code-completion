@@ -55,15 +55,12 @@ def train():
     for epoch in range(args.epochs):
         model.train()
         epoch_loss = 0
-        batch_count = 0
+
         # Get current training batch
         sample = dataset_batcher.get_batch()
         while sample is not None:
 
             optimiser.zero_grad()
-
-            print("Batch N:", batch_count)
-            batch_count += 1
 
             x = torch.tensor(sample[0], device=device)
             y = torch.tensor(sample[1], device=device)

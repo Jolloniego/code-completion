@@ -30,6 +30,7 @@ class CodeDataset(Dataset):
 
     def __getitem__(self, idx):
         filename = self.code_files[idx]
+        print("Loading File:", filename)
         sample_tokens = self.__obtain_tokens(filename)
         sample_tokens = self.__vecotrize_and_pad(sample_tokens)
 
@@ -57,7 +58,7 @@ class CodeDataset(Dataset):
     def __vecotrize_and_pad(self, token_list):
         result = []
         token_list = np.array(list(itertools.chain(*token_list)))
-        newlines = np.where(token_list == '\n')[0]
+        newlines = np.where(token_list == '\n')[0] if token_list.size > 0 else []
 
         start_idx = 0
         for newline_idx in newlines:

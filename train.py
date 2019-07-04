@@ -55,8 +55,8 @@ def train():
         while sample is not None:
             optimiser.zero_grad()
 
-            x = torch.LongTensor(sample[0]).to(device)
-            y = torch.LongTensor(sample[1]).to(device)
+            x = torch.tensor(sample[0], device=device)
+            y = torch.tensor(sample[1], device=device)
 
             # Get the predictions and compute the loss
             preds = model(x)

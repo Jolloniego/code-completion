@@ -105,7 +105,7 @@ class CodeDatasetBatcher:
             self.current_file += 1
             self.current_position = 0
 
-        if len(result) == 0:
+        if len(result[0]) == 0:
             return self.get_batch()
 
         return result

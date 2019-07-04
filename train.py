@@ -50,11 +50,14 @@ def train():
     for epoch in range(args.epochs):
         model.train()
         epoch_loss = 0
-
+        batch_count= 0
         # Get current training batch
         sample = dataset_batcher.get_batch()
         while sample is not None:
             optimiser.zero_grad()
+
+            print("Batch N:", batch_count)
+            batch_count += 1
 
             x = torch.tensor(sample[0], device=device)
             y = torch.tensor(sample[1], device=device)
@@ -63,16 +66,19 @@ def train():
             preds = model(x)
             loss = criterion(preds.view(-1, len(word_to_idx)), y.view(-1))
 
-            # Backprop the loss and update params
+            # Backprop the loss and update params, use gradient clipping if specified
             loss.backward()
-
             torch.nn.utils.clip_grad_norm_(model.parameters(), args.grad_clip)
             optimiser.step()
 
             epoch_loss += loss.item() / len(x)
 
             # Get the next batch
+            del x, y
             sample = dataset_batcher.get_batch()
+
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
 
         print("Epoch {} | Loss {:.10} | Time taken {:.2f} seconds".format(epoch, epoch_loss, time.time() - start))
 

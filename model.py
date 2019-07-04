@@ -1,21 +1,27 @@
+import torch
 import numpy as np
 import torch.nn as nn
 
 
 class DummyModel(nn.Module):
-
     def __init__(self, vocab_size, embedding_dim):
         super(DummyModel, self).__init__()
+        self.hidden_dim = 128
 
         self.embeddings = nn.Embedding(vocab_size, embedding_dim)
-        self.lstm = nn.LSTM(embedding_dim, 128, batch_first=True)
-        self.dense = nn.Linear(128, vocab_size)
+        self.lstm = nn.LSTM(embedding_dim, self.hidden_dim, batch_first=True)
+        self.dense = nn.Linear(self.hidden_dim, vocab_size)
+        self.hidden = self.init_hidden(1)
 
-    def forward(self, code_line):
-        embeds = self.embeddings(code_line)
-        lstm_out, _ = self.lstm(embeds)
+    def forward(self, input_batch):
+        self.hidden = self.init_hidden(len(input_batch))
+        embeds = self.embeddings(input_batch)
+        lstm_out, self.hidden = self.lstm(embeds, self.hidden)
         logits = self.dense(lstm_out)
         return logits
+
+    def init_hidden(self, batch_size):
+        return torch.randn(1, batch_size, self.hidden_dim), torch.randn(1, batch_size, self.hidden_dim)
 
     def summary(self):
         model_parameters = filter(lambda p: p.requires_grad, self.parameters())

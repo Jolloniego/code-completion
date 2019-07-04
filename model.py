@@ -4,9 +4,10 @@ import torch.nn as nn
 
 
 class DummyModel(nn.Module):
-    def __init__(self, vocab_size, embedding_dim):
+    def __init__(self, vocab_size, embedding_dim, device):
         super(DummyModel, self).__init__()
         self.hidden_dim = 128
+        self.device = device
 
         self.embeddings = nn.Embedding(vocab_size, embedding_dim)
         self.lstm = nn.LSTM(embedding_dim, self.hidden_dim, batch_first=True)
@@ -21,7 +22,8 @@ class DummyModel(nn.Module):
         return logits
 
     def init_hidden(self, batch_size):
-        return torch.randn(1, batch_size, self.hidden_dim), torch.randn(1, batch_size, self.hidden_dim)
+        return torch.randn(1, batch_size, self.hidden_dim, device=self.device),\
+               torch.randn(1, batch_size, self.hidden_dim, device=self.device)
 
     def summary(self):
         model_parameters = filter(lambda p: p.requires_grad, self.parameters())

@@ -34,8 +34,9 @@ class CodeDataset(Dataset):
         sample_tokens = self.__vecotrize_and_pad(sample_tokens)
 
         prepared_outputs = np.zeros_like(sample_tokens)
-        prepared_outputs[:-1] = sample_tokens[1:]
-        prepared_outputs[-1] = sample_tokens[0]
+        if len(sample_tokens) > 0:
+            prepared_outputs[:-1] = sample_tokens[1:]
+            prepared_outputs[-1] = sample_tokens[0]
 
         return sample_tokens, prepared_outputs
 

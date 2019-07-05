@@ -77,11 +77,7 @@ def train():
             epoch_loss += loss.item() / len(x)
 
             # Get the next batch
-            del x, y
             sample = dataset_batcher.get_batch()
-
-            if torch.cuda.is_available():
-                torch.cuda.empty_cache()
 
         print("Epoch {} | Loss {:.10} | Time taken {:.2f} seconds".format(epoch, epoch_loss, time.time() - start))
 

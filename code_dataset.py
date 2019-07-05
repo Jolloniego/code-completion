@@ -42,7 +42,8 @@ class CodeDataset(Dataset):
 
     def __obtain_tokens(self, filename):
         sample = []
-        with open(os.path.join(self.root_dir, filename), 'r') as current_file:
+        try:
+            current_file = open(os.path.join(self.root_dir, filename), 'r')
             tokens = tokenize.generate_tokens(current_file.readline)
 
             # Dont process comments, newlines, block comments or empty tokens
@@ -53,6 +54,8 @@ class CodeDataset(Dataset):
                                 (t_type == tokenize.DEDENT or t_val != "")]
             if processed_tokens:
                 sample.append(processed_tokens)
+        except OSError:
+            pass
         return sample
 
     def __vecotrize_and_pad(self, token_list):

@@ -20,27 +20,38 @@ class CodeDataset(Dataset):
         self.vocabulary = vocabulary
         self.code_files = []
 
+        # Cache last opened and processed file
+        self.last_idx = -1
+        self.last_sample = []
+
         with open(txt_file, 'r') as data_db:
             self.code_files = [x for x in data_db.read().splitlines()]
 
     def __len__(self):
-        # Need to return the length of the dataset somehow.
-        # The code below might not be the best option.
         return len(self.code_files)
 
     def __getitem__(self, idx):
-        filename = self.code_files[idx]
-        sample_tokens = self.__obtain_tokens(filename)
-        sample_tokens = self.__vecotrize_and_pad(sample_tokens)
+        if idx != self.last_idx:
+            # Process each file only once.
+            self.last_idx = idx
+            filename = self.code_files[idx]
+            sample_tokens = self.__obtain_tokens(filename)
+            sample_tokens = self.__vecotrize_and_pad(sample_tokens)
+            self.last_sample = sample_tokens
 
-        prepared_outputs = np.zeros_like(sample_tokens)
-        if len(sample_tokens) > 0:
-            prepared_outputs[:-1] = sample_tokens[1:]
-            prepared_outputs[-1] = sample_tokens[0]
+        prepared_outputs = np.zeros_like(self.last_sample)
+        if len(self.last_sample) > 0:
+            prepared_outputs[:-1] = self.last_sample[1:]
+            prepared_outputs[-1] = self.last_sample[0]
 
-        return sample_tokens, prepared_outputs
+        return self.last_sample, prepared_outputs
 
     def __obtain_tokens(self, filename):
+        """
+        Opens the selected file and returns a list of tokens for it using the tokenize library.
+        :param filename: path to file to be opened.
+        :return: List of tokens (or empty list in case of Error)
+        """
         sample = []
         try:
             current_file = open(os.path.join(self.root_dir, filename), 'r')
@@ -59,6 +70,11 @@ class CodeDataset(Dataset):
         return sample
 
     def __vecotrize_and_pad(self, token_list):
+        """
+        Pads each sequence to the length set in the constructor and converts each word to a one-hot vector.
+        :param token_list: List of tokens returned from __obtain_tokens. Continuous list with \n characters to indicate newlines
+        :return: List of vectorised and padded sequences.
+        """
         result = []
         token_list = np.array(list(itertools.chain(*token_list)))
         newlines = np.where(token_list == '\n')[0] if token_list.size > 0 else []
@@ -85,10 +101,18 @@ class CodeDatasetBatcher:
         self.current_position = 0
 
     def reset_batcher(self):
+        """
+        Resets the batcher to the starting position.
+        """
         self.current_file = 0
         self.current_position = 0
 
     def get_batch(self):
+        """
+        Performs the necessary computations to generate a new batch from the data.
+        Returns None if dataset has been explored entirely.
+        :return: Current batch to be processed by the models.
+        """
         if self.current_file >= len(self.dataset):
             return None
         try:

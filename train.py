@@ -36,7 +36,7 @@ parser.add_argument('--val_epochs', type=int, default=1,
 parser.add_argument('--batch_size', type=int, default=32, help='Batch size to use.')
 parser.add_argument('--seq_length', type=int, default=20, help='Sequence lengths to use.')
 parser.add_argument('--epochs', type=int, default=10, help='Epochs to train for.')
-parser.add_argument('--grad_clip', type=int, default=None, help='Gradient clipping.')
+parser.add_argument('--grad_clip', type=float, default=None, help='Gradient clipping.')
 
 args = parser.parse_args()
 
@@ -54,7 +54,6 @@ def train():
     # Create the model, optimizer and criterion to use
     model = DummyModel(len(word_to_idx), 300, device).to(device)
     print("The model has {} trainable parameters.".format(model.summary()))
-    criterion = nn.CrossEntropyLoss().to(device)
     optimiser = optim.Adam(model.parameters(), lr=0.001)
 
     start = time.time()
@@ -74,7 +73,7 @@ def train():
 
             # Get the predictions and compute the loss
             preds = model(x)
-            loss = criterion(preds.view(-1, len(word_to_idx)), y.view(-1))
+            loss = criterion(preds, y)
 
             # Backprop the loss and update params, use gradient clipping if specified
             loss.backward()
@@ -92,7 +91,7 @@ def train():
         # Validate if we need to
         if epoch % args.val_epochs == 0:
             model.eval()
-            validate(model, criterion, val_dataset, time.time())
+            validate(model, val_dataset, time.time())
 
         # Reset the batcher
         train_dataset_batcher.reset_batcher()
@@ -101,7 +100,7 @@ def train():
     return model
 
 
-def validate(model, criterion, val_dataset, start_time):
+def validate(model, val_dataset, start_time):
     val_dataset_batcher = CodeDatasetBatcher(val_dataset, args.batch_size)
 
     validation_loss = 0
@@ -111,7 +110,7 @@ def validate(model, criterion, val_dataset, start_time):
         y = torch.tensor(sample[1], device=device)
 
         preds = model(x)
-        loss = criterion(preds.view(-1, len(word_to_idx)), y.view(-1)).item()
+        loss = criterion(preds, y).item()
         validation_loss += loss / len(x)
 
         # Advance to the next batch
@@ -120,8 +119,45 @@ def validate(model, criterion, val_dataset, start_time):
     print("Validation epoch | Loss {:.10} | Time taken {:.2f} seconds".format(validation_loss, time.time() - start_time))
 
 
+def next_token_prediction_test():
+    # Load the model and set it to eval mode.
+    model = DummyModel(len(word_to_idx), 300, device).to(device)
+    model.load_state_dict(torch.load(os.path.join(args.model_path, model.save_name)))
+    model.eval()
+
+    # Get the data
+    test_dataset = CodeDataset(args.test_files, args.data_root, args.seq_length, word_to_idx)
+    test_dataset_batcher = CodeDatasetBatcher(test_dataset, args.batch_size)
+
+    start = time.time()
+
+    correct = 0
+    total = 0
+    sample = test_dataset_batcher.get_batch()
+    while sample is not None:
+        x = torch.tensor(sample[0], device=device)
+        y = torch.tensor(sample[1])
+
+        preds = model(x)
+        preds = torch.argmax(nn.functional.softmax(preds, dim=1), dim=1)
+
+        correct += (preds == y).sum().item()
+        total += len(x)
+        # Advance to the next batch
+        sample = test_dataset_batcher.get_batch()
+
+    print("Test Set | Accuracy {:.2f} % | Time taken {:.2f} seconds".format(correct / total * 100, time.time() - start))
+
+
 if __name__ == '__main__':
     device = torch.device(args.cuda if (args.cuda is not None and torch.cuda.is_available()) else 'cpu')
+    criterion = nn.CrossEntropyLoss().to(device)
     if args.mode == 'train':
         trained_model = train()
         torch.save(trained_model.state_dict(), os.path.join(args.model_path, trained_model.save_name))
+
+    elif args.mode == 'test':
+        next_token_prediction_test()
+
+    else:
+        print("Unrecognized mode set. Use train or test only.")

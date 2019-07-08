@@ -12,11 +12,10 @@ from code_dataset import CodeDataset, CodeDatasetBatcher
 np.random.seed(2019)
 torch.manual_seed(2019)
 
-# Argument parsing
+# Paths
 parser = argparse.ArgumentParser()
 parser.add_argument('--data_root', type=str, default='data/repos',
                     help='Path root folder containing the cloned repositories.')
-parser.add_argument('--vocab_path', type=str, default='data/vocab.p', help='Path to vocab.p file.')
 # Files containing paths to data
 parser.add_argument('--train_files', type=str, default='data/train.txt',
                     help='Path to file containing the training data split.')
@@ -26,6 +25,7 @@ parser.add_argument('--test_files', type=str, default='data/test.txt',
                     help='Path to file containing the test data split.')
 # Run configurations
 parser.add_argument('--mode', type=str, default='train', help='train or test')
+parser.add_argument('--vocab_path', type=str, default='data/vocab.p', help='Path to vocab.p file.')
 parser.add_argument('--cuda', type=str,
                     help='Cuda card to use, format: "cuda:int_number". Leave unused to use CPU')
 parser.add_argument('--val_epochs', type=int, default=1,
@@ -89,6 +89,7 @@ def train():
 
         # Validate if we need to
         if epoch % args.val_epochs == 0:
+            model.eval()
             validate(model, criterion, val_dataset, time.time())
 
         # Reset the batcher

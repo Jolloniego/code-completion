@@ -28,6 +28,8 @@ parser.add_argument('--test_files', type=str, default='data/test.txt',
 parser.add_argument('--mode', type=str, default='train', help='train or test')
 parser.add_argument('--cuda', type=str,
                     help='Cuda card to use, format: "cuda:int_number". Leave unused to use CPU')
+parser.add_argument('--val_epochs', type=int, default=1,
+                    help='Number of epochs after which to validate on the validation set')
 # Hyperparameters
 parser.add_argument('--batch_size', type=int, default=32, help='Batch size to use.')
 parser.add_argument('--seq_length', type=int, default=20, help='Sequence lengths to use.')
@@ -42,9 +44,12 @@ word_to_idx = pickle.load(open(args.vocab_path, 'rb'))
 
 
 def train():
-    dataset = CodeDataset(args.train_files, args.data_root, args.seq_length, word_to_idx)
-    dataset_batcher = CodeDatasetBatcher(dataset, args.batch_size)
+    # Get training and validation data
+    train_dataset = CodeDataset(args.train_files, args.data_root, args.seq_length, word_to_idx)
+    val_dataset = CodeDataset(args.val_files, args.data_root, args.seq_length, word_to_idx)
+    train_dataset_batcher = CodeDatasetBatcher(train_dataset, args.batch_size)
 
+    # Create the model, optimizer and criterion to use
     model = DummyModel(len(word_to_idx), 300, device).to(device)
     print("The model has {} trainable parameters.".format(model.summary()))
     criterion = nn.CrossEntropyLoss().to(device)
@@ -52,12 +57,12 @@ def train():
 
     start = time.time()
 
-    for epoch in range(args.epochs):
+    for epoch in range(1, args.epochs + 1):
         model.train()
         epoch_loss = 0
 
         # Get current training batch
-        sample = dataset_batcher.get_batch()
+        sample = train_dataset_batcher.get_batch()
         while sample is not None:
 
             optimiser.zero_grad()
@@ -77,14 +82,37 @@ def train():
             epoch_loss += loss.item() / len(x)
 
             # Get the next batch
-            sample = dataset_batcher.get_batch()
+            sample = train_dataset_batcher.get_batch()
 
         print("Epoch {} | Loss {:.10} | Time taken {:.2f} seconds".format(epoch, epoch_loss, time.time() - start))
 
+        # Validate if we need to
+        if epoch % args.val_epochs == 0:
+            validate(model, criterion, val_dataset, time.time())
+
         # Reset the batcher
-        dataset_batcher.reset_batcher()
+        train_dataset_batcher.reset_batcher()
 
     print("Done Training, total time taken: ", time.time() - start)
+
+
+def validate(model, criterion, val_dataset, start_time):
+    val_dataset_batcher = CodeDatasetBatcher(val_dataset, args.batch_size)
+
+    validation_loss = 0
+    sample = val_dataset_batcher.get_batch()
+    while sample is not None:
+        x = torch.tensor(sample[0], device=device)
+        y = torch.tensor(sample[1], device=device)
+
+        preds = model(x)
+        loss = criterion(preds.view(-1, len(word_to_idx)), y.view(-1)).item()
+        validation_loss += loss / len(x)
+
+        # Advance to the next batch
+        sample = val_dataset_batcher.get_batch()
+
+    print("Validation epoch | Loss {:.10} | Time taken {:.2f} seconds".format(validation_loss, time.time() - start_time))
 
 
 if __name__ == '__main__':

@@ -39,12 +39,11 @@ class CodeDataset(Dataset):
             sample_tokens = self.__vecotrize_and_pad(sample_tokens)
             self.last_sample = sample_tokens
 
-        prepared_outputs = np.zeros_like(self.last_sample)
-        if len(self.last_sample) > 0:
-            prepared_outputs[:-1] = self.last_sample[1:]
-            prepared_outputs[-1] = self.last_sample[0]
+            if len(self.last_sample) > 0:
+                self.prepared_outputs = self.last_sample[:, -1]
+                self.last_sample = self.last_sample[:, :-1]
 
-        return self.last_sample, prepared_outputs
+        return self.last_sample, self.prepared_outputs
 
     def __obtain_tokens(self, filename):
         """
@@ -71,25 +70,21 @@ class CodeDataset(Dataset):
 
     def __vecotrize_and_pad(self, token_list):
         """
-        Pads each sequence to the length set in the constructor and converts each word to a one-hot vector.
-        :param token_list: List of tokens returned from __obtain_tokens. Continuous list with \n characters to indicate newlines
-        :return: List of vectorised and padded sequences.
+        Converts each word to a one-hot vector and pads when necessary.
+        :param token_list: List of tokens returned from __obtain_tokens.
+        :return: ndarray [n_samples, seq_len + 1].
         """
-        result = []
         token_list = np.array(list(itertools.chain(*token_list)))
-        newlines = np.where(token_list == '\n')[0] if token_list.size > 0 else []
 
-        start_idx = 0
-        for newline_idx in newlines:
-            if start_idx != newline_idx:
-                current_line = [self.vocabulary.get(word, du.OOV_IDX) for word in token_list[start_idx:newline_idx][:self.seq_length]]
-                current_line = np.pad(current_line, (0, self.seq_length - len(current_line)), mode='constant',
-                                      constant_values=du.PAD_IDX)
+        current_sequence = np.array([self.vocabulary.get(word, du.OOV_IDX) for word in token_list])
 
-                result.append(current_line)
-                start_idx = newline_idx + 1
+        target_length = self.seq_length + 1
+        target_shape = (-1, target_length)
+        if current_sequence.size % target_length != 0:
+            amount_to_pad = abs(current_sequence.size - ((current_sequence.size // target_length) + 1) * target_length)
+            current_sequence = np.pad(current_sequence, (0, amount_to_pad), mode='constant', constant_values=du.PAD_IDX)
 
-        return np.array(result)
+        return current_sequence.reshape(target_shape)
 
 
 class CodeDatasetBatcher:

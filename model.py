@@ -19,7 +19,7 @@ class DummyModel(nn.Module):
         self.hidden = self.init_hidden(len(input_batch))
         embeds = self.embeddings(input_batch)
         lstm_out, self.hidden = self.lstm(embeds, self.hidden)
-        logits = self.dense(lstm_out)
+        logits = self.dense(lstm_out[:, -1])
         return logits
 
     def init_hidden(self, batch_size):

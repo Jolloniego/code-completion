@@ -6,6 +6,7 @@ import torch.nn as nn
 class DummyModel(nn.Module):
     def __init__(self, vocab_size, embedding_dim, device):
         super(DummyModel, self).__init__()
+        self.save_name = "DummyRnnModel.pt"
         self.hidden_dim = 128
         self.device = device
 

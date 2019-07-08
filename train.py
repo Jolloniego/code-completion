@@ -1,3 +1,4 @@
+import os
 import time
 import torch
 import pickle
@@ -16,6 +17,7 @@ torch.manual_seed(2019)
 parser = argparse.ArgumentParser()
 parser.add_argument('--data_root', type=str, default='data/repos',
                     help='Path root folder containing the cloned repositories.')
+parser.add_argument('--model_path', type=str, default='models', help='Path to folder where models will be saved.')
 # Files containing paths to data
 parser.add_argument('--train_files', type=str, default='data/train.txt',
                     help='Path to file containing the training data split.')
@@ -96,6 +98,7 @@ def train():
         train_dataset_batcher.reset_batcher()
 
     print("Done Training, total time taken: ", time.time() - start)
+    return model
 
 
 def validate(model, criterion, val_dataset, start_time):
@@ -120,4 +123,5 @@ def validate(model, criterion, val_dataset, start_time):
 if __name__ == '__main__':
     device = torch.device(args.cuda if (args.cuda is not None and torch.cuda.is_available()) else 'cpu')
     if args.mode == 'train':
-        train()
+        trained_model = train()
+        torch.save(trained_model.state_dict(), os.path.join(args.model_path, trained_model.save_name))

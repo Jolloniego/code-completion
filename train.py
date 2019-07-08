@@ -34,7 +34,7 @@ parser.add_argument('--val_epochs', type=int, default=1,
 parser.add_argument('--batch_size', type=int, default=32, help='Batch size to use.')
 parser.add_argument('--seq_length', type=int, default=20, help='Sequence lengths to use.')
 parser.add_argument('--epochs', type=int, default=10, help='Epochs to train for.')
-parser.add_argument('--grad_clip', type=int, default=0.25, help='Gradient clipping.')
+parser.add_argument('--grad_clip', type=int, default=None, help='Gradient clipping.')
 
 args = parser.parse_args()
 
@@ -76,7 +76,8 @@ def train():
 
             # Backprop the loss and update params, use gradient clipping if specified
             loss.backward()
-            torch.nn.utils.clip_grad_norm_(model.parameters(), args.grad_clip)
+            if args.grad_clip is not None and args.grad_clip > 0:
+                torch.nn.utils.clip_grad_norm_(model.parameters(), args.grad_clip)
             optimiser.step()
 
             epoch_loss += loss.item() / len(x)

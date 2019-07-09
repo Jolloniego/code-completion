@@ -6,7 +6,7 @@ import argparse
 import numpy as np
 import torch.nn as nn
 import torch.optim as optim
-from model import DummyModel
+from model import BaselineRNNModel
 from code_dataset import CodeDataset, CodeDatasetBatcher
 
 # Fix random seeds for reproducibility
@@ -52,7 +52,7 @@ def train():
     train_dataset_batcher = CodeDatasetBatcher(train_dataset, args.batch_size)
 
     # Create the model, optimizer and criterion to use
-    model = DummyModel(len(word_to_idx), 300, device).to(device)
+    model = BaselineRNNModel(len(word_to_idx), 300, device).to(device)
     print("The model has {} trainable parameters.".format(model.summary()))
     optimiser = optim.Adam(model.parameters(), lr=0.001)
 
@@ -121,7 +121,7 @@ def validate(model, val_dataset, start_time):
 
 def next_token_prediction_test():
     # Load the model and set it to eval mode.
-    model = DummyModel(len(word_to_idx), 300, device).to(device)
+    model = BaselineRNNModel(len(word_to_idx), 300, device).to(device)
     model.load_state_dict(torch.load(os.path.join(args.model_path, model.save_name)))
     model.eval()
 

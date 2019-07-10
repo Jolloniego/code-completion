@@ -32,12 +32,12 @@ parser.add_argument('--mode', type=str, default='train', help='train or test')
 parser.add_argument('--vocab_path', type=str, default='data/vocab.p', help='Path to vocab.p file.')
 parser.add_argument('--cuda', type=str,
                     help='Cuda card to use, format: "cuda:int_number". Leave unused to use CPU')
+parser.add_argument('--epochs', type=int, default=10, help='Epochs to train for.')
 parser.add_argument('--val_epochs', type=int, default=1,
                     help='Number of epochs after which to validate on the validation set')
 # Hyperparameters
 parser.add_argument('--batch_size', type=int, default=32, help='Batch size to use.')
 parser.add_argument('--seq_length', type=int, default=20, help='Sequence lengths to use.')
-parser.add_argument('--epochs', type=int, default=10, help='Epochs to train for.')
 parser.add_argument('--grad_clip', type=float, default=None, help='Gradient clipping.')
 parser.add_argument('--lr', type=float, default=0.001, help='Base Learning Rate.')
 
@@ -70,16 +70,18 @@ def train():
 
         epoch_start = time.time()
         # Get current training batch
-        sample = train_dataset_batcher.get_batch()
+        sample, file_changed = train_dataset_batcher.get_batch()
         while sample is not None:
-
             optimiser.zero_grad()
 
             x = torch.tensor(sample[0], device=device)
             y = torch.tensor(sample[1], device=device)
 
+            if file_changed:
+                hidden = model.init_hidden(len(x))
+
             # Get the predictions and compute the loss
-            preds = model(x)
+            preds, hidden = model(x, hidden)
             loss = criterion(preds, y)
 
             # Track accuracy as well
@@ -88,7 +90,7 @@ def train():
             correct += (preds == y).sum().item()
 
             # Backprop the loss and update params, use gradient clipping if specified
-            loss.backward()
+            loss.backward(retain_graph=True)
             if args.grad_clip is not None and args.grad_clip > 0:
                 torch.nn.utils.clip_grad_norm_(model.parameters(), args.grad_clip)
             optimiser.step()
@@ -96,7 +98,7 @@ def train():
             epoch_loss += loss.item() / len(x)
 
             # Get the next batch
-            sample = train_dataset_batcher.get_batch()
+            sample, file_changed = train_dataset_batcher.get_batch()
 
         print("Epoch {} | Loss {:.10} | Accuracy {:.2f}% | Time taken {:.2f} seconds"
               .format(epoch, epoch_loss, (correct / total * 100), time.time() - epoch_start))
@@ -120,12 +122,15 @@ def validate(model, val_dataset, start_time):
     total = 0
     correct = 0
 
-    sample = val_dataset_batcher.get_batch()
+    sample, file_changed = val_dataset_batcher.get_batch()
     while sample is not None:
         x = torch.tensor(sample[0], device=device)
         y = torch.tensor(sample[1], device=device)
 
-        preds = model(x)
+        if file_changed:
+            hidden = model.init_hidden(len(x))
+
+        preds, hidden = model(x, hidden)
         loss = criterion(preds, y).item()
         validation_loss += loss / len(x)
 
@@ -135,7 +140,7 @@ def validate(model, val_dataset, start_time):
         correct += (preds == y).sum().item()
 
         # Advance to the next batch
-        sample = val_dataset_batcher.get_batch()
+        sample, file_changed = val_dataset_batcher.get_batch()
 
     print("Validation epoch | Loss {:.10} | Accuracy {:.2f}% | Time taken {:.2f} seconds"
           .format(validation_loss, (correct / total * 100), time.time() - start_time))
@@ -155,18 +160,21 @@ def next_token_prediction_test():
 
     correct = 0
     total = 0
-    sample = test_dataset_batcher.get_batch()
+    sample, file_changed = test_dataset_batcher.get_batch()
     while sample is not None:
         x = torch.tensor(sample[0], device=device)
         y = torch.tensor(sample[1])
 
-        preds = model(x)
+        if file_changed:
+            hidden = model.init_hidden(len(x))
+
+        preds, hidden = model(x, hidden)
         preds = torch.argmax(nn.functional.softmax(preds, dim=1), dim=1).detach().cpu()
 
         correct += (preds == y).sum().item()
         total += len(x)
         # Advance to the next batch
-        sample = test_dataset_batcher.get_batch()
+        sample, file_changed = test_dataset_batcher.get_batch()
 
     print("Test Set | Accuracy {:.2f} % | Time taken {:.2f} seconds".format(correct / total * 100, time.time() - start))
 
@@ -177,6 +185,7 @@ if __name__ == '__main__':
     if args.mode == 'train':
         trained_model = train()
         torch.save(trained_model.state_dict(), os.path.join(args.model_path, trained_model.save_name))
+        next_token_prediction_test()
 
     elif args.mode == 'test':
         next_token_prediction_test()

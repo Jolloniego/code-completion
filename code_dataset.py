@@ -96,6 +96,7 @@ class CodeDatasetBatcher:
         self.dataset = dataset
         self.batch_size = batch_size
         self.current_file = 0
+        self.changed_file = True
         self.current_position = 0
 
     def reset_batcher(self):
@@ -104,6 +105,7 @@ class CodeDatasetBatcher:
         """
         self.current_file = 0
         self.current_position = 0
+        self.changed_file = True
 
     def get_batch(self):
         """
@@ -112,21 +114,23 @@ class CodeDatasetBatcher:
         :return: Current batch to be processed by the models.
         """
         if self.current_file >= len(self.dataset):
-            return None
+            return None, self.changed_file
 
         inputs, outputs = self.dataset[self.current_file]
 
         if len(inputs) >= self.batch_size and self.current_position + self.batch_size <= len(inputs):
             result = inputs[self.current_position:self.current_position + self.batch_size], \
                      outputs[self.current_position:self.current_position + self.batch_size]
+            self.changed_file = self.current_position == 0
             self.current_position += self.batch_size
 
         else:
             result = inputs[self.current_position:], outputs[self.current_position:]
             self.current_file += 1
+            self.changed_file = True
             self.current_position = 0
 
         if len(result[0]) == 0:
             return self.get_batch()
 
-        return result
+        return result, self.changed_file

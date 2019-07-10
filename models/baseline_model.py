@@ -17,13 +17,16 @@ class BaselineRNNModel(nn.Module):
         self.fc0 = nn.Linear(500, 300)
         self.fc1 = nn.Linear(300, vocab_size)
 
-    def forward(self, input_batch):
+    def forward(self, input_batch, hidden):
         embeds = self.embeddings(input_batch)
         embeds = self.dropout(embeds)
-        outs, _ = self.rnn(embeds)
+        outs, hidden = self.rnn(embeds, hidden)
         outs = torch.sigmoid(self.fc0(outs[:, -1]))
         logits = self.fc1(outs)
-        return logits
+        return logits, hidden
+
+    def init_hidden(self, batch_size):
+        return torch.zeros(1, batch_size, 500).to(self.device)
 
     def summary(self):
         model_parameters = filter(lambda p: p.requires_grad, self.parameters())

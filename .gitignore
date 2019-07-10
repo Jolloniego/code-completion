@@ -1,5 +1,5 @@
 .idea/*
 data/*
-models/*
+saved_models/*
 vocab.p
 __pycache__/*

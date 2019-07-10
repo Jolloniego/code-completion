@@ -1,13 +1,15 @@
-import os
-import time
-import torch
-import pickle
 import argparse
+import os
+import pickle
+import time
+
 import numpy as np
+import torch
 import torch.nn as nn
 import torch.optim as optim
-from model import BaselineRNNModel
+
 from code_dataset import CodeDataset, CodeDatasetBatcher
+from models.baseline_model import BaselineRNNModel
 
 # Fix random seeds for reproducibility
 np.random.seed(2019)
@@ -17,7 +19,7 @@ torch.manual_seed(2019)
 parser = argparse.ArgumentParser()
 parser.add_argument('--data_root', type=str, default='data/repos',
                     help='Path root folder containing the cloned repositories.')
-parser.add_argument('--model_path', type=str, default='models', help='Path to folder where models will be saved.')
+parser.add_argument('--model_path', type=str, default='saved_models', help='Path to folder where models will be saved.')
 # Files containing paths to data
 parser.add_argument('--train_files', type=str, default='data/train.txt',
                     help='Path to file containing the training data split.')
@@ -61,7 +63,10 @@ def train():
 
     for epoch in range(1, args.epochs + 1):
         model.train()
+
         epoch_loss = 0
+        correct = 0
+        total = 0
 
         # Get current training batch
         sample = train_dataset_batcher.get_batch()
@@ -76,6 +81,11 @@ def train():
             preds = model(x)
             loss = criterion(preds, y)
 
+            # Track accuracy as well
+            total += len(x)
+            preds = torch.argmax(nn.functional.softmax(preds, dim=1), dim=1).detach().cpu()
+            correct += (preds == y).sum().item()
+
             # Backprop the loss and update params, use gradient clipping if specified
             loss.backward()
             if args.grad_clip is not None and args.grad_clip > 0:
@@ -87,7 +97,8 @@ def train():
             # Get the next batch
             sample = train_dataset_batcher.get_batch()
 
-        print("Epoch {} | Loss {:.10} | Time taken {:.2f} seconds".format(epoch, epoch_loss, time.time() - start))
+        print("Epoch {} | Loss {:.10} | Accuracy {:.2f}% | Time taken {:.2f} seconds"
+              .format(epoch, epoch_loss, (correct / total * 100), time.time() - start))
 
         # Validate if we need to
         if epoch % args.val_epochs == 0:
@@ -105,6 +116,9 @@ def validate(model, val_dataset, start_time):
     val_dataset_batcher = CodeDatasetBatcher(val_dataset, args.batch_size)
 
     validation_loss = 0
+    total = 0
+    correct = 0
+
     sample = val_dataset_batcher.get_batch()
     while sample is not None:
         x = torch.tensor(sample[0], device=device)
@@ -114,10 +128,16 @@ def validate(model, val_dataset, start_time):
         loss = criterion(preds, y).item()
         validation_loss += loss / len(x)
 
+        # Track accuracy
+        total += len(x)
+        preds = torch.argmax(nn.functional.softmax(preds, dim=1), dim=1).detach().cpu()
+        correct += (preds == y).sum().item()
+
         # Advance to the next batch
         sample = val_dataset_batcher.get_batch()
 
-    print("Validation epoch | Loss {:.10} | Time taken {:.2f} seconds".format(validation_loss, time.time() - start_time))
+    print("Validation epoch | Loss {:.10} | Accuracy {:.2f}% | Time taken {:.2f} seconds"
+          .format(validation_loss, (correct / total * 100), time.time() - start_time))
 
 
 def next_token_prediction_test():

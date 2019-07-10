@@ -59,7 +59,7 @@ def train():
     print("The model has {} trainable parameters.".format(model.summary()))
     optimiser = optim.Adam(model.parameters(), lr=args.lr)
 
-    start = time.time()
+    train_start = time.time()
 
     for epoch in range(1, args.epochs + 1):
         model.train()
@@ -68,6 +68,7 @@ def train():
         correct = 0
         total = 0
 
+        epoch_start = time.time()
         # Get current training batch
         sample = train_dataset_batcher.get_batch()
         while sample is not None:
@@ -98,7 +99,7 @@ def train():
             sample = train_dataset_batcher.get_batch()
 
         print("Epoch {} | Loss {:.10} | Accuracy {:.2f}% | Time taken {:.2f} seconds"
-              .format(epoch, epoch_loss, (correct / total * 100), time.time() - start))
+              .format(epoch, epoch_loss, (correct / total * 100), time.time() - epoch_start))
 
         # Validate if we need to
         if epoch % args.val_epochs == 0:
@@ -108,7 +109,7 @@ def train():
         # Reset the batcher
         train_dataset_batcher.reset_batcher()
 
-    print("Done Training, total time taken: ", time.time() - start)
+    print("Done Training, total time taken: ", time.time() - train_start)
     return model
 
 

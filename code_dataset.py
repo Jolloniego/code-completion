@@ -20,9 +20,8 @@ class CodeDataset(Dataset):
         self.vocabulary = vocabulary
         self.code_files = []
 
-        # Cache last opened and processed file
-        self.last_idx = -1
-        self.last_sample = []
+        # List of tuples with already loaded inputs and outputs to speed up epochs after the 1st
+        self.loaded_files = []
 
         with open(txt_file, 'r') as data_db:
             self.code_files = [x for x in data_db.read().splitlines()]
@@ -31,19 +30,23 @@ class CodeDataset(Dataset):
         return len(self.code_files)
 
     def __getitem__(self, idx):
-        if idx != self.last_idx:
+        try:
+            return self.loaded_files[idx]
+
+        except IndexError:
             # Process each file only once.
-            self.last_idx = idx
             filename = self.code_files[idx]
             sample_tokens = self.__obtain_tokens(filename)
             sample_tokens = self.__vecotrize_and_pad(sample_tokens)
-            self.last_sample = sample_tokens
 
-            if len(self.last_sample) > 0:
-                self.prepared_outputs = self.last_sample[:, -1]
-                self.last_sample = self.last_sample[:, :-1]
+            prepared_outputs = []
+            if len(sample_tokens) > 0:
+                prepared_outputs = sample_tokens[:, -1]
+                sample_tokens = sample_tokens[:, :-1]
 
-        return self.last_sample, self.prepared_outputs
+            self.loaded_files.append((sample_tokens, prepared_outputs))
+
+            return self.loaded_files[idx]
 
     def __obtain_tokens(self, filename):
         """
@@ -110,17 +113,12 @@ class CodeDatasetBatcher:
         """
         if self.current_file >= len(self.dataset):
             return None
-        try:
-            inputs, outputs = self.dataset[self.current_file]
-        except IndexError:
-            # Handle empty files as well by advancing in the file list
-            self.current_file += 1
-            self.current_position = 0
-            return self.get_batch()
+
+        inputs, outputs = self.dataset[self.current_file]
 
         if len(inputs) >= self.batch_size and self.current_position + self.batch_size <= len(inputs):
-            result = inputs[self.current_position:self.current_position + self.batch_size],\
-                  outputs[self.current_position:self.current_position + self.batch_size]
+            result = inputs[self.current_position:self.current_position + self.batch_size], \
+                     outputs[self.current_position:self.current_position + self.batch_size]
             self.current_position += self.batch_size
 
         else:

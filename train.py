@@ -26,7 +26,7 @@ parser.add_argument('--val_files', type=str, default='data/validation.txt',
 parser.add_argument('--test_files', type=str, default='data/test.txt',
                     help='Path to file containing the test data split.')
 # Run configurations
-parser.add_argument('--mode', type=str, default='train', help='train or test')
+parser.add_argument('--mode', type=str, default='test', help='train or test')
 parser.add_argument('--vocab_path', type=str, default='data/vocab.p', help='Path to vocab.p file.')
 parser.add_argument('--cuda', type=str,
                     help='Cuda card to use, format: "cuda:int_number". Leave unused to use CPU')
@@ -139,7 +139,7 @@ def next_token_prediction_test():
         y = torch.tensor(sample[1])
 
         preds = model(x)
-        preds = torch.argmax(nn.functional.softmax(preds, dim=1), dim=1)
+        preds = torch.argmax(nn.functional.softmax(preds, dim=1), dim=1).detach().cpu()
 
         correct += (preds == y).sum().item()
         total += len(x)

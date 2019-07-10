@@ -83,7 +83,7 @@ def train():
 
             # Track accuracy as well
             total += len(x)
-            preds = torch.argmax(nn.functional.softmax(preds, dim=1), dim=1).detach().cpu()
+            preds = torch.argmax(nn.functional.softmax(preds, dim=1), dim=1).detach()
             correct += (preds == y).sum().item()
 
             # Backprop the loss and update params, use gradient clipping if specified
@@ -130,7 +130,7 @@ def validate(model, val_dataset, start_time):
 
         # Track accuracy
         total += len(x)
-        preds = torch.argmax(nn.functional.softmax(preds, dim=1), dim=1).detach().cpu()
+        preds = torch.argmax(nn.functional.softmax(preds, dim=1), dim=1).detach()
         correct += (preds == y).sum().item()
 
         # Advance to the next batch

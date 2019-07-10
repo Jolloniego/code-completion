@@ -26,7 +26,7 @@ parser.add_argument('--val_files', type=str, default='data/validation.txt',
 parser.add_argument('--test_files', type=str, default='data/test.txt',
                     help='Path to file containing the test data split.')
 # Run configurations
-parser.add_argument('--mode', type=str, default='test', help='train or test')
+parser.add_argument('--mode', type=str, default='train', help='train or test')
 parser.add_argument('--vocab_path', type=str, default='data/vocab.p', help='Path to vocab.p file.')
 parser.add_argument('--cuda', type=str,
                     help='Cuda card to use, format: "cuda:int_number". Leave unused to use CPU')
@@ -37,6 +37,7 @@ parser.add_argument('--batch_size', type=int, default=32, help='Batch size to us
 parser.add_argument('--seq_length', type=int, default=20, help='Sequence lengths to use.')
 parser.add_argument('--epochs', type=int, default=10, help='Epochs to train for.')
 parser.add_argument('--grad_clip', type=float, default=None, help='Gradient clipping.')
+parser.add_argument('--lr', type=float, default=0.001, help='Base Learning Rate.')
 
 args = parser.parse_args()
 
@@ -54,7 +55,7 @@ def train():
     # Create the model, optimizer and criterion to use
     model = BaselineRNNModel(len(word_to_idx), 300, device).to(device)
     print("The model has {} trainable parameters.".format(model.summary()))
-    optimiser = optim.Adam(model.parameters(), lr=0.001)
+    optimiser = optim.Adam(model.parameters(), lr=args.lr)
 
     start = time.time()
 

@@ -23,7 +23,7 @@ class CodeDataset(Dataset):
         # List of tuples with already loaded inputs and outputs to speed up epochs after the 1st
         self.loaded_files = []
 
-        with open(txt_file, 'r') as data_db:
+        with open(txt_file, 'r', encoding="utf-8") as data_db:
             self.code_files = [x for x in data_db.read().splitlines()]
 
     def __len__(self):

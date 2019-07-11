@@ -56,7 +56,7 @@ class CodeDataset(Dataset):
         """
         sample = []
         try:
-            current_file = open(os.path.join(self.root_dir, filename), 'r')
+            current_file = open(os.path.join(self.root_dir, filename), 'r', encoding='utf-8')
             tokens = tokenize.generate_tokens(current_file.readline)
 
             # Dont process comments, newlines, block comments or empty tokens

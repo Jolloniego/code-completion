@@ -52,7 +52,8 @@ word_to_idx = pickle.load(open(args.vocab_path, 'rb'))
 
 def get_model(model_id):
     if model_id == 0:
-        return BaselineRNNModel(len(word_to_idx), 300, device).to(device)
+        return BaselineRNNModel(vocab_size=len(word_to_idx), device=device,
+                                embedding_dim=300, dropout=0.5).to(device)
     else:
         raise ValueError("Model not known. Use 0 for BaselineRNNModel.")
 

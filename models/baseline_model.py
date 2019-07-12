@@ -4,13 +4,13 @@ import torch.nn as nn
 
 
 class BaselineRNNModel(nn.Module):
-    def __init__(self, vocab_size, embedding_dim, device):
+    def __init__(self, vocab_size, embedding_dim, dropout, device):
         super(BaselineRNNModel, self).__init__()
         self.save_name = "BaselineRNNModel.pt"
         self.device = device
 
         self.embeddings = nn.Embedding(vocab_size, embedding_dim)
-        self.dropout = nn.Dropout(0.5)
+        self.dropout = nn.Dropout(dropout)
         # Use tanh as non-linearity
         self.rnn = nn.RNN(embedding_dim, 500, batch_first=True)
 

@@ -29,6 +29,8 @@ parser.add_argument('--test_files', type=str, default='data/test.txt',
                     help='Path to file containing the test data split.')
 # Run configurations
 parser.add_argument('--mode', type=str, default='train', help='train or test')
+parser.add_argument('--model', type=int, default=0,
+                    help='Model to use. 0 = Baseline model.')
 parser.add_argument('--vocab_path', type=str, default='data/vocab.p', help='Path to vocab.p file.')
 parser.add_argument('--cuda', type=str,
                     help='Cuda card to use, format: "cuda:int_number". Leave unused to use CPU')
@@ -48,14 +50,20 @@ word_to_idx = pickle.load(open(args.vocab_path, 'rb'))
 # ixd_to_word = {key: word for key, word in enumerate(word_to_idx)}
 
 
-def train():
+def get_model(model_id):
+    if model_id == 0:
+        return BaselineRNNModel(len(word_to_idx), 300, device).to(device)
+    else:
+        raise ValueError("Model not known. Use 0 for BaselineRNNModel.")
+
+
+def train(model):
     # Get training and validation data
     train_dataset = CodeDataset(args.train_files, args.data_root, args.seq_length, word_to_idx)
     val_dataset = CodeDataset(args.val_files, args.data_root, args.seq_length, word_to_idx)
     train_dataset_batcher = CodeDatasetBatcher(train_dataset, args.batch_size)
 
     # Create the model, optimizer and criterion to use
-    model = BaselineRNNModel(len(word_to_idx), 300, device).to(device)
     print("The model has {} trainable parameters.".format(model.summary()))
     optimiser = optim.Adam(model.parameters(), lr=args.lr)
 
@@ -146,9 +154,8 @@ def validate(model, val_dataset, start_time):
           .format(validation_loss, (correct / total * 100), time.time() - start_time))
 
 
-def next_token_prediction_test():
+def next_token_prediction_test(model):
     # Load the model and set it to eval mode.
-    model = BaselineRNNModel(len(word_to_idx), 300, device).to(device)
     model.load_state_dict(torch.load(os.path.join(args.model_path, model.save_name)))
     model.eval()
 
@@ -183,12 +190,12 @@ if __name__ == '__main__':
     device = torch.device(args.cuda if (args.cuda is not None and torch.cuda.is_available()) else 'cpu')
     criterion = nn.CrossEntropyLoss().to(device)
     if args.mode == 'train':
-        trained_model = train()
+        trained_model = train(get_model(args.model))
         torch.save(trained_model.state_dict(), os.path.join(args.model_path, trained_model.save_name))
-        next_token_prediction_test()
+        next_token_prediction_test(get_model(args.model))
 
     elif args.mode == 'test':
-        next_token_prediction_test()
+        next_token_prediction_test(get_model(args.model))
 
     else:
         print("Unrecognized mode set. Use train or test only.")

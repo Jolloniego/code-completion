@@ -42,6 +42,9 @@ parser.add_argument('--batch_size', type=int, default=32, help='Batch size to us
 parser.add_argument('--seq_length', type=int, default=20, help='Sequence lengths to use.')
 parser.add_argument('--grad_clip', type=float, default=None, help='Gradient clipping.')
 parser.add_argument('--lr', type=float, default=0.001, help='Base Learning Rate.')
+parser.add_argument('--dropout', type=float, default=0.5, help='Inputs Dropout Rate.')
+parser.add_argument('--embedding_dim', type=int, default=300, help='Embedding dimension.')
+
 
 args = parser.parse_args()
 
@@ -53,7 +56,7 @@ word_to_idx = pickle.load(open(args.vocab_path, 'rb'))
 def get_model(model_id):
     if model_id == 0:
         return BaselineRNNModel(vocab_size=len(word_to_idx), device=device,
-                                embedding_dim=300, dropout=0.5).to(device)
+                                embedding_dim=args.embedding_dim, dropout=args.dropout).to(device)
     else:
         raise ValueError("Model not known. Use 0 for BaselineRNNModel.")
 

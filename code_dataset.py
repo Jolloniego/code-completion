@@ -85,7 +85,7 @@ class CodeDataset(Dataset):
         target_shape = (-1, target_length)
         if current_sequence.size % target_length != 0:
             amount_to_pad = abs(current_sequence.size - ((current_sequence.size // target_length) + 1) * target_length)
-            current_sequence = np.pad(current_sequence, (0, amount_to_pad), mode='constant', constant_values=du.PAD_IDX)
+            current_sequence = np.pad(current_sequence, (amount_to_pad, 0), mode='constant', constant_values=du.PAD_IDX)
 
         return current_sequence.reshape(target_shape)
 

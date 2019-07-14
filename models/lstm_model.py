@@ -11,7 +11,6 @@ class LSTMModel(nn.Module):
 
         self.embeddings = nn.Embedding(vocab_size, embedding_dim)
         self.dropout = nn.Dropout(dropout)
-        # Use tanh as non-linearity
         self.lstm = nn.LSTM(embedding_dim, 500, batch_first=True)
 
         self.fc0 = nn.Linear(500, 300)

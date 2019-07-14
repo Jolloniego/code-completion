@@ -7,6 +7,7 @@ import numpy as np
 
 import test_driver
 import train_driver
+from models.lstm_model import LSTMModel
 from models.baseline_model import BaselineRNNModel
 
 # Fix random seeds for reproducibility
@@ -28,7 +29,7 @@ parser.add_argument('--test_files', type=str, default='data/test.txt',
 # Run configurations
 parser.add_argument('--mode', type=str, default='train', help='train or test')
 parser.add_argument('--model', type=int, default=0,
-                    help='Model to use. 0 = Baseline model.')
+                    help='Model to use. 0 = Baseline model. 1 = Basic LSTM model.')
 parser.add_argument('--vocab_path', type=str, default='data/vocab.p', help='Path to vocab.p file.')
 parser.add_argument('--cuda', type=str,
                     help='Cuda card to use, format: "cuda:int_number". Leave unused to use CPU')
@@ -55,8 +56,11 @@ def get_model(model_id):
     if model_id == 0:
         return BaselineRNNModel(vocab_size=len(word_to_idx), device=device,
                                 embedding_dim=args.embedding_dim, dropout=args.dropout).to(device)
+    elif model_id == 1:
+        return LSTMModel(vocab_size=len(word_to_idx), device=device,
+                         embedding_dim=args.embedding_dim, dropout=args.dropout).to(device)
     else:
-        raise ValueError("Model not known. Use 0 for BaselineRNNModel.")
+        raise ValueError("Model not known. Use 0 for BaselineRNNModel. 1 for BasicLSTMModel.")
 
 
 if __name__ == '__main__':

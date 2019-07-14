@@ -12,7 +12,7 @@ def train(model, word_to_idx, device, args):
     train_dataset_batcher = CodeDatasetBatcher(train_dataset, args.batch_size)
 
     # Create the model, optimizer and criterion to use
-    print("The model has {} trainable parameters.".format(model.summary()))
+    print("The model {}, has {} trainable parameters.".format(model.save_name, model.summary()))
     optimiser = optim.Adam(model.parameters(), lr=args.lr)
     criterion = nn.CrossEntropyLoss().to(device)
 

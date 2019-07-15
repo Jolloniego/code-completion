@@ -4,14 +4,14 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 
-from datasets.code_dataset import CodeDataset, CodeDatasetBatcher
+from datasets.next_token_dataset import NextTokenCodeDataset, NextTokenCodeDatasetBatcher
 
 
 def train(model, word_to_idx, device, args):
     # Get training and validation data
-    train_dataset = CodeDataset(args.train_files, args.data_root, args.seq_length, word_to_idx)
-    val_dataset = CodeDataset(args.val_files, args.data_root, args.seq_length, word_to_idx)
-    train_dataset_batcher = CodeDatasetBatcher(train_dataset, args.batch_size)
+    train_dataset = NextTokenCodeDataset(args.train_files, args.data_root, args.seq_length, word_to_idx)
+    val_dataset = NextTokenCodeDataset(args.val_files, args.data_root, args.seq_length, word_to_idx)
+    train_dataset_batcher = NextTokenCodeDatasetBatcher(train_dataset, args.batch_size)
 
     # Create the model, optimizer and criterion to use
     print("The model {}, has {} trainable parameters.".format(model.save_name, model.summary()))
@@ -75,7 +75,7 @@ def train(model, word_to_idx, device, args):
 
 
 def validate(model, val_dataset, start_time, device, args):
-    val_dataset_batcher = CodeDatasetBatcher(val_dataset, args.batch_size)
+    val_dataset_batcher = NextTokenCodeDatasetBatcher(val_dataset, args.batch_size)
     criterion = nn.CrossEntropyLoss().to(device)
 
     validation_loss = 0

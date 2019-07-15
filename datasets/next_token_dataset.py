@@ -8,7 +8,7 @@ from torch.utils.data import Dataset
 from utils import data_utils as du
 
 
-class CodeDataset(Dataset):
+class NextTokenCodeDataset(Dataset):
 
     def __init__(self, txt_file, root_folder, sequence_length, vocabulary):
         """
@@ -92,7 +92,7 @@ class CodeDataset(Dataset):
         return current_sequence.reshape(target_shape)
 
 
-class CodeDatasetBatcher:
+class NextTokenCodeDatasetBatcher:
 
     def __init__(self, dataset, batch_size):
         self.dataset = dataset

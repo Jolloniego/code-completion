@@ -1,9 +1,11 @@
+import itertools
 import os
 import tokenize
-import itertools
+
 import numpy as np
-import data_utils as du
 from torch.utils.data import Dataset
+
+from utils import data_utils as du
 
 
 class CodeDataset(Dataset):

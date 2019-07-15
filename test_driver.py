@@ -1,8 +1,10 @@
 import os
 import time
+
 import torch
 import torch.nn as nn
-from code_dataset import CodeDataset, CodeDatasetBatcher
+
+from datasets.code_dataset import CodeDataset, CodeDatasetBatcher
 
 
 def next_token_prediction_test(model, word_to_idx, device, args):

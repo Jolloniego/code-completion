@@ -3,4 +3,6 @@ data/*
 saved_models/*
 vocab.p
 models/__pycache__/*
+datasets/__pycache__/*
+utils/__pycache__/*
 __pycache__/*

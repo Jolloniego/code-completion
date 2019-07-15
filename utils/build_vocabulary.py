@@ -1,8 +1,9 @@
-import pickle
 import argparse
-import itertools
 import collections
-import data_utils as du
+import itertools
+import pickle
+
+from utils import data_utils as du
 
 # Argument parsing
 parser = argparse.ArgumentParser()

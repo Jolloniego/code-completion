@@ -1,8 +1,10 @@
 import time
+
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from code_dataset import CodeDataset, CodeDatasetBatcher
+
+from datasets.code_dataset import CodeDataset, CodeDatasetBatcher
 
 
 def train(model, word_to_idx, device, args):

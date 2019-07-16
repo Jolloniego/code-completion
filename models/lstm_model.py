@@ -11,7 +11,7 @@ class LSTMModel(nn.Module):
 
         self.embeddings = nn.Embedding(vocab_size, embedding_dim)
         self.dropout = nn.Dropout(dropout)
-        self.lstm = nn.LSTM(embedding_dim, 500, batch_first=True)
+        self.lstm = nn.LSTM(embedding_dim, 500, dropout=0.3, batch_first=True)
 
         self.fc0 = nn.Linear(500, 300)
         self.fc1 = nn.Linear(300, vocab_size)
@@ -21,6 +21,7 @@ class LSTMModel(nn.Module):
         embeds = self.dropout(embeds)
         outs, hidden = self.lstm(embeds, hidden)
         outs = torch.sigmoid(self.fc0(outs[:, -1]))
+        outs = self.dropout(outs)
         logits = self.fc1(outs)
         return logits, hidden
 

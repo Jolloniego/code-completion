@@ -1,4 +1,3 @@
-import itertools
 import os
 import tokenize
 
@@ -39,15 +38,14 @@ class NextLineCodeDataset(Dataset):
         except IndexError:
             # Process each file only once.
             filename = self.code_files[idx]
-            sample_tokens = self.__obtain_tokens(filename)
-            sample_tokens = self.__vecotrize_and_pad(sample_tokens)
+            sample_tokens = [line for line in self.__obtain_tokens(filename) if line != []]
 
             prepared_outputs = []
             prepared_inputs = []
             position = 0
             while position < len(sample_tokens):
                 current_sample = sample_tokens[position:position + self.previous_lines + 1]
-                prepared_inputs.append(current_sample[:-1])
+                prepared_inputs.append(np.concatenate(current_sample[:-1]).ravel())
                 prepared_outputs.append(current_sample[-1])
                 position += self.previous_lines + 1
 
@@ -73,28 +71,29 @@ class NextLineCodeDataset(Dataset):
                                 not t_val.startswith('"""') and
                                 (t_type == tokenize.DEDENT or t_val != "")]
             if processed_tokens:
-                sample.append(processed_tokens)
+                # Split them line by line
+                line_by_line = []
+                all_tokens = np.array(processed_tokens)
+                newlines = np.where(all_tokens == '\n')[0]
+                current_pos = 0
+                for newline_pos in newlines:
+                    line = all_tokens[current_pos:newline_pos]
+                    current_pos = newline_pos + 1
+                    line_by_line.append(self.__vectorize(line))
+
+                sample.extend(line_by_line)
         except OSError:
             pass
         return sample
 
-    def __vecotrize_and_pad(self, token_list):
+    def __vectorize(self, token_list):
         """
-        Converts each word to a one-hot vector and pads when necessary.
+        Converts each word to a one-hot vector.
         :param token_list: List of tokens returned from __obtain_tokens.
         :return: ndarray [n_samples, seq_len + 1].
         """
-        token_list = np.array(list(itertools.chain(*token_list)))
-
-        current_sequence = np.array([self.vocabulary.get(word, du.OOV_IDX) for word in token_list])
-
-        target_length = self.seq_length
-        target_shape = (-1, target_length)
-        if current_sequence.size % target_length != 0:
-            amount_to_pad = abs(current_sequence.size - ((current_sequence.size // target_length) + 1) * target_length)
-            current_sequence = np.pad(current_sequence, (amount_to_pad, 0), mode='constant', constant_values=du.PAD_IDX)
-
-        return current_sequence.reshape(target_shape)
+        current_sequence = np.array([self.vocabulary.get(word, du.OOV_IDX) for word in token_list], dtype=np.long)
+        return current_sequence
 
 
 class NextLineCodeDatasetBatcher:
@@ -137,7 +136,7 @@ class NextLineCodeDatasetBatcher:
             self.changed_file = True
             self.current_position = 0
 
-        if len(result[0]) == 0:
+        if len(result[0]) == 0 or len(result[0][0]) == 0:
             return self.get_batch()
 
         return result, self.changed_file

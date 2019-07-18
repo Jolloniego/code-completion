@@ -141,14 +141,3 @@ class NextLineCodeDatasetBatcher:
             return self.get_batch()
 
         return result, self.changed_file
-
-
-import pickle
-word_to_idx = pickle.load(open('../data/vocab.p', 'rb'))
-ds = NextLineCodeDataset('../data/test.txt', '../data/repos', 20, 5, word_to_idx)
-batcher = NextLineCodeDatasetBatcher(ds, 32)
-
-sample, _ = batcher.get_batch()
-while sample is not None:
-    sample, _ = batcher.get_batch()
-    print(sample)

@@ -65,16 +65,20 @@ def get_model(model_id):
         raise ValueError("Model not known. Use 0 for BaselineRNNModel. 1 for BasicLSTMModel.")
 
 
+def next_token_models_tests():
+    nt_models_test_driver.next_token_prediction_test(get_model(args.model), word_to_idx, device, args)
+    nt_models_test_driver.next_line_prediction_test(get_model(args.model), word_to_idx, device, args)
+
+
 if __name__ == '__main__':
     device = torch.device(args.cuda if (args.cuda is not None and torch.cuda.is_available()) else 'cpu')
     if args.mode == 'train':
         trained_model = train_driver.train(get_model(args.model), word_to_idx, device, args)
         torch.save(trained_model.state_dict(), os.path.join(args.model_path, trained_model.save_name))
-        nt_models_test_driver.next_token_prediction_test(get_model(args.model), word_to_idx, device, args)
-        nt_models_test_driver.next_line_prediction_test(get_model(args.model), word_to_idx, device, args)
+        next_token_models_tests()
 
     elif args.mode == 'test':
-        nt_models_test_driver.next_token_prediction_test(get_model(args.model), word_to_idx, device, args)
-        nt_models_test_driver.next_line_prediction_test(get_model(args.model), word_to_idx, device, args)
+        next_token_models_tests()
+
     else:
         print("Unrecognized mode set. Use train or test only.")

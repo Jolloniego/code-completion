@@ -5,7 +5,7 @@ import argparse
 import torch
 import numpy as np
 
-import test_driver
+import nt_models_test_driver
 import train_driver
 from models.lstm_model import LSTMModel
 from models.baseline_model import BaselineRNNModel
@@ -39,6 +39,8 @@ parser.add_argument('--val_epochs', type=int, default=1,
 # Hyperparameters
 parser.add_argument('--batch_size', type=int, default=32, help='Batch size to use.')
 parser.add_argument('--seq_length', type=int, default=20, help='Sequence lengths to use.')
+parser.add_argument('--prev_lines', type=int, default=32,
+                    help='Number of previous lines to use for next line prediction.')
 parser.add_argument('--grad_clip', type=float, default=None, help='Gradient clipping.')
 parser.add_argument('--lr', type=float, default=0.001, help='Base Learning Rate.')
 parser.add_argument('--dropout', type=float, default=0.5, help='Inputs Dropout Rate.')
@@ -49,7 +51,7 @@ args = parser.parse_args()
 
 word_to_idx = pickle.load(open(args.vocab_path, 'rb'))
 # Not needed for now.
-# ixd_to_word = {key: word for key, word in enumerate(word_to_idx)}
+# idx_to_word = {key: word for key, word in enumerate(word_to_idx)}
 
 
 def get_model(model_id):
@@ -68,10 +70,11 @@ if __name__ == '__main__':
     if args.mode == 'train':
         trained_model = train_driver.train(get_model(args.model), word_to_idx, device, args)
         torch.save(trained_model.state_dict(), os.path.join(args.model_path, trained_model.save_name))
-        test_driver.next_token_prediction_test(get_model(args.model), word_to_idx, device, args)
+        nt_models_test_driver.next_token_prediction_test(get_model(args.model), word_to_idx, device, args)
+        nt_models_test_driver.next_line_prediction_test(get_model(args.model), word_to_idx, device, args)
 
     elif args.mode == 'test':
-        test_driver.next_token_prediction_test(get_model(args.model), word_to_idx, device, args)
-
+        nt_models_test_driver.next_token_prediction_test(get_model(args.model), word_to_idx, device, args)
+        nt_models_test_driver.next_line_prediction_test(get_model(args.model), word_to_idx, device, args)
     else:
         print("Unrecognized mode set. Use train or test only.")

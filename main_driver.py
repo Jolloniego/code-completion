@@ -1,14 +1,13 @@
+import argparse
 import os
 import pickle
-import argparse
 
-import torch
 import numpy as np
+import torch
 
-import nt_models_test_driver
-import train_driver
-from models.lstm_model import LSTMModel
+from drivers import nt_models_test_driver, nt_train_driver
 from models.baseline_model import BaselineRNNModel
+from models.lstm_model import LSTMModel
 
 # Fix random seeds for reproducibility
 np.random.seed(2019)
@@ -79,7 +78,7 @@ def train_model_next_token():
     Trains the selected model (from args) for the next token prediction task on the next-token dataset.
     After training, saves the model to disk and runs the corresponding test suite.
     """
-    trained_model = train_driver.train(get_model(args.model), word_to_idx, device, args)
+    trained_model = nt_train_driver.train(get_model(args.model), word_to_idx, device, args)
     torch.save(trained_model.state_dict(), os.path.join(args.model_path, trained_model.save_name))
     next_token_models_tests()
 

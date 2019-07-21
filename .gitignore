@@ -5,4 +5,5 @@ vocab.p
 models/__pycache__/*
 datasets/__pycache__/*
 utils/__pycache__/*
+drivers/__pycache__/*
 __pycache__/*

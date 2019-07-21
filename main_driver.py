@@ -27,7 +27,11 @@ parser.add_argument('--val_files', type=str, default='data/validation.txt',
 parser.add_argument('--test_files', type=str, default='data/test.txt',
                     help='Path to file containing the test data split.')
 # Run configurations
-parser.add_argument('--mode', type=str, default='train', help='train or test')
+parser.add_argument('--mode', type=int, default=0,
+                    help='0 - Train model on next-token prediction data.\n'
+                         '1 - Train model on next-line prediction data.\n'
+                         '2 - Test models trained on next-token tasks.\n'
+                         '3 - Test models trained on next-line prediction.\n')
 parser.add_argument('--model', type=int, default=0,
                     help='Model to use. 0 = Baseline model. 1 = Basic LSTM model.')
 parser.add_argument('--vocab_path', type=str, default='data/vocab.p', help='Path to vocab.p file.')
@@ -50,11 +54,16 @@ parser.add_argument('--embedding_dim', type=int, default=300, help='Embedding di
 args = parser.parse_args()
 
 word_to_idx = pickle.load(open(args.vocab_path, 'rb'))
+device = torch.device(args.cuda if (args.cuda is not None and torch.cuda.is_available()) else 'cpu')
+
 # Not needed for now.
 # idx_to_word = {key: word for key, word in enumerate(word_to_idx)}
 
 
 def get_model(model_id):
+    """
+    Returns the object associated to the model selected in the args.
+    """
     if model_id == 0:
         return BaselineRNNModel(vocab_size=len(word_to_idx), device=device,
                                 embedding_dim=args.embedding_dim, dropout=args.dropout).to(device)
@@ -65,20 +74,41 @@ def get_model(model_id):
         raise ValueError("Model not known. Use 0 for BaselineRNNModel. 1 for BasicLSTMModel.")
 
 
+def train_model_next_token():
+    """
+    Trains the selected model (from args) for the next token prediction task on the next-token dataset.
+    After training, saves the model to disk and runs the corresponding test suite.
+    """
+    trained_model = train_driver.train(get_model(args.model), word_to_idx, device, args)
+    torch.save(trained_model.state_dict(), os.path.join(args.model_path, trained_model.save_name))
+    next_token_models_tests()
+
+
 def next_token_models_tests():
+    """
+    Tests a model trained for the next token prediction task on both the next token prediction and the
+    next line of code prediction.
+    """
     nt_models_test_driver.next_token_prediction_test(get_model(args.model), word_to_idx, device, args)
     nt_models_test_driver.next_line_prediction_test(get_model(args.model), word_to_idx, device, args)
 
 
+# Operates as a switch for the different modes.
+#  Functions without () so they are not executed when declared.
+mode_functions = {
+    0: train_model_next_token,
+    1: None,
+    2: next_token_models_tests,
+    3: None
+}
+
+
 if __name__ == '__main__':
-    device = torch.device(args.cuda if (args.cuda is not None and torch.cuda.is_available()) else 'cpu')
-    if args.mode == 'train':
-        trained_model = train_driver.train(get_model(args.model), word_to_idx, device, args)
-        torch.save(trained_model.state_dict(), os.path.join(args.model_path, trained_model.save_name))
-        next_token_models_tests()
-
-    elif args.mode == 'test':
-        next_token_models_tests()
-
-    else:
-        print("Unrecognized mode set. Use train or test only.")
+    try:
+        mode_functions[args.mode]()
+    except KeyError:
+        print('Unrecognised mode. Available modes are:\n'
+              '0 - Train model on next-token prediction data.\n'
+              '1 - Train model on next-line prediction data.\n'
+              '2 - Test models trained on next-token tasks.\n'
+              '3 - Test models trained on next-line prediction.\n')

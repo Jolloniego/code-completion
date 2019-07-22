@@ -44,15 +44,16 @@ class NextLineCodeDataset(Dataset):
             position = 0
             while position < len(sample_tokens):
                 current_sample = np.concatenate(sample_tokens[position:position + self.previous_lines + 1])
-                prepared_outputs.append(current_sample[-self.seq_length:])
-                current_sample = current_sample[:-self.seq_length]
+                if len(current_sample) > self.seq_length:
+                    prepared_outputs.append(current_sample[-self.seq_length:])
+                    current_sample = current_sample[:-self.seq_length]
 
-                amount_to_pad = 0 if current_sample.size % self.seq_length == 0 else \
-                    abs(current_sample.size - ((current_sample.size // self.seq_length) + 1) * self.seq_length)
-                current_sample = np.pad(current_sample, (amount_to_pad, 0), mode='constant',
-                                        constant_values=du.PAD_IDX)
+                    amount_to_pad = 0 if current_sample.size % self.seq_length == 0 else \
+                        abs(current_sample.size - ((current_sample.size // self.seq_length) + 1) * self.seq_length)
+                    current_sample = np.pad(current_sample, (amount_to_pad, 0), mode='constant',
+                                            constant_values=du.PAD_IDX)
 
-                prepared_inputs.append(current_sample.reshape(self.seq_length, -1))
+                    prepared_inputs.append(current_sample.reshape(self.seq_length, -1))
                 position += self.previous_lines + 1
 
             self.loaded_files.append((prepared_inputs, prepared_outputs))

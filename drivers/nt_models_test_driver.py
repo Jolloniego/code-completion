@@ -61,7 +61,7 @@ def next_line_prediction_test(model, word_to_idx, device, model_name, args):
     while sample is not None:
         for idx in range(len(sample[0])):
 
-            previous_tokens = torch.tensor(sample[0][idx], device=device).view((1, -1))
+            previous_tokens = torch.tensor(sample[0][idx], device=device).view(1, -1)
             y = torch.tensor(sample[1][idx])
 
             if file_changed:
@@ -72,13 +72,13 @@ def next_line_prediction_test(model, word_to_idx, device, model_name, args):
             predictions, hidden = model(previous_tokens, hidden)
 
             final_output = []
-            for _ in range(len(y)):
+            for _ in range(args.seq_length):
                 predicted_word = torch.argmax(torch.softmax(predictions, dim=1), dim=1).detach().cpu()
                 final_output.append(predicted_word)
                 predictions, hidden = model(predicted_word.unsqueeze(0), hidden)
 
             final_output = torch.cat(final_output)
-            loss = torch.sum(final_output - y).item() / len(y)
+            loss = torch.sum(final_output - y).item() / args.seq_length
 
             total += 1
             correct += 1 if loss == 0 else 0

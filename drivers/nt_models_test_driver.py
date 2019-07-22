@@ -53,7 +53,6 @@ def next_line_prediction_test(model, word_to_idx, device, model_name, args):
 
     correct = 0
     total = 0
-    total_loss = 0
     sample, file_changed = test_dataset_batcher.get_batch()
     while sample is not None:
         for idx in range(len(sample[0])):
@@ -75,15 +74,12 @@ def next_line_prediction_test(model, word_to_idx, device, model_name, args):
                 predictions, hidden = model(predicted_word.unsqueeze(0), hidden)
 
             final_output = torch.cat(final_output)
-            loss = torch.sum(final_output - y).item() / args.seq_length
-
             total += 1
-            correct += 1 if loss == 0 else 0
-            total_loss += loss
+            correct += 1 if torch.equal(final_output, y) else 0
 
         # Advance to the next batch
         sample, file_changed = test_dataset_batcher.get_batch()
 
-    print("Next-Line Test Set | Accuracy {:.2f} % | Loss {:.2f} | Time taken {:.2f} seconds"
-          .format(correct / total * 100, total_loss / total, time.time() - start))
+    print("Next-Line Test Set | Accuracy {:.2f} % | Time taken {:.2f} seconds"
+          .format(correct / total * 100, time.time() - start))
 

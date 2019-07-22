@@ -48,9 +48,9 @@ def train(model, word_to_idx, device, args):
                 loss = criterion(preds, y)
 
                 # Track accuracy as well
-                total += len(x)
+                total += 1
                 preds = torch.argmax(nn.functional.softmax(preds, dim=1), dim=1).detach()
-                correct += (preds == y).sum().item()
+                correct += 1 if torch.equal(preds, y) else 0
 
                 # Backprop the loss and update params, use gradient clipping if specified
                 loss.backward(retain_graph=True)
@@ -102,9 +102,9 @@ def validate(model, val_dataset, start_time, device, args):
             validation_loss += loss / len(x)
 
             # Track accuracy
-            total += len(x)
+            total += 1
             preds = torch.argmax(nn.functional.softmax(preds, dim=1), dim=1).detach()
-            correct += (preds == y).sum().item()
+            correct += 1 if torch.equal(preds, y) else 0
 
         # Advance to the next batch
         sample, file_changed = val_dataset_batcher.get_batch()

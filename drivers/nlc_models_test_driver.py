@@ -68,13 +68,13 @@ def next_line_prediction_test(model, word_to_idx, device, model_name, args):
             preds, hidden = model(x, hidden)
 
             # Track accuracy
-            total += len(x)
+            total += 1
             preds = torch.argmax(nn.functional.softmax(preds, dim=1), dim=1).detach()
             correct += 1 if torch.equal(preds, y) else 0
 
         # Advance to the next batch
         sample, file_changed = test_dataset_batcher.get_batch()
 
-    print("Next-Line Test Set | Accuracy {:.2f} % | Loss {:.2f} | Time taken {:.2f} seconds"
-          .format(correct / total * 100, total_loss / total, time.time() - start))
+    print("Next-Line Test Set | Accuracy {:.2f} % | Time taken {:.2f} seconds"
+          .format(correct / total * 100, time.time() - start))
 

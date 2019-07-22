@@ -8,9 +8,9 @@ from datasets.full_line_dataset import NextLineCodeDataset, NextLineCodeDatasetB
 from datasets.next_token_dataset import NextTokenCodeDataset, NextTokenCodeDatasetBatcher
 
 
-def next_token_prediction_test(model, word_to_idx, device, args):
+def next_token_prediction_test(model, word_to_idx, device, model_name, args):
     # Load the model and set it to eval mode.
-    model.load_state_dict(torch.load(os.path.join(args.model_path, model.save_name)))
+    model.load_state_dict(torch.load(os.path.join(args.model_path, model_name)))
     model.eval()
 
     # Get the data
@@ -37,12 +37,12 @@ def next_token_prediction_test(model, word_to_idx, device, args):
         # Advance to the next batch
         sample, file_changed = test_dataset_batcher.get_batch()
 
-    print("Test Set | Accuracy {:.2f} % | Time taken {:.2f} seconds".format(correct / total * 100, time.time() - start))
+    print("Next-Token Test Set | Accuracy {:.2f} % | Time taken {:.2f} seconds".format(correct / total * 100, time.time() - start))
 
 
-def next_line_prediction_test(model, word_to_idx, device, args):
+def next_line_prediction_test(model, word_to_idx, device, model_name, args):
     # Load the model and set it to eval mode.
-    model.load_state_dict(torch.load(os.path.join(args.model_path, model.save_name)))
+    model.load_state_dict(torch.load(os.path.join(args.model_path, model_name)))
     model.eval()
 
     # Loss criterion

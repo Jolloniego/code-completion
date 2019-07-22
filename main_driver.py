@@ -5,9 +5,9 @@ import pickle
 import numpy as np
 import torch
 
-from drivers import nt_models_test_driver, nt_train_driver
-from models.baseline_model import BaselineRNNModel
 from models.lstm_model import LSTMModel
+from models.baseline_model import BaselineRNNModel
+from drivers import nt_models_test_driver, nt_train_driver, nlc_train_driver
 
 # Fix random seeds for reproducibility
 np.random.seed(2019)
@@ -79,8 +79,20 @@ def train_model_next_token():
     After training, saves the model to disk and runs the corresponding test suite.
     """
     trained_model = nt_train_driver.train(get_model(args.model), word_to_idx, device, args)
-    torch.save(trained_model.state_dict(), os.path.join(args.model_path, trained_model.save_name))
+    model_save_name = mode_names[args.mode] + '_' + trained_model.save_name
+    torch.save(trained_model.state_dict(), os.path.join(args.model_path, model_save_name))
     next_token_models_tests()
+
+
+def train_model_next_line():
+    """
+    Trains the selected model for the next line of code prediction task on the next line dataset.
+    After training saves the model on disk and runs the corresponding tests.
+    """
+    trained_model = nt_train_driver.train(get_model(args.model), word_to_idx, device, args)
+    model_save_name = mode_names[args.mode] + '_' + trained_model.save_name
+    torch.save(trained_model.state_dict(), os.path.join(args.model_path, model_save_name))
+    next_line_models_tests()
 
 
 def next_token_models_tests():
@@ -88,19 +100,30 @@ def next_token_models_tests():
     Tests a model trained for the next token prediction task on both the next token prediction and the
     next line of code prediction.
     """
-    nt_models_test_driver.next_token_prediction_test(get_model(args.model), word_to_idx, device, args)
-    nt_models_test_driver.next_line_prediction_test(get_model(args.model), word_to_idx, device, args)
+    model = get_model(args.model)
+    model_save_name = mode_names[args.mode] + '_' + model.save_name
+    nt_models_test_driver.next_token_prediction_test(model, word_to_idx, device, model_save_name, args)
+    nt_models_test_driver.next_line_prediction_test(model, word_to_idx, device, model_save_name, args)
+
+
+def next_line_models_tests():
+    return None
 
 
 # Operates as a switch for the different modes.
 #  Functions without () so they are not executed when declared.
 mode_functions = {
     0: train_model_next_token,
-    1: None,
+    1: train_model_next_line,
     2: next_token_models_tests,
-    3: None
+    3: next_line_models_tests
 }
-
+mode_names = {
+    0: 'NT',
+    1: 'NLC',
+    2: 'NT',
+    3: 'NLC'
+}
 
 if __name__ == '__main__':
     try:

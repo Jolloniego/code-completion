@@ -45,9 +45,6 @@ def next_line_prediction_test(model, word_to_idx, device, model_name, args):
     model.load_state_dict(torch.load(os.path.join(args.model_path, model_name)))
     model.eval()
 
-    # Loss criterion
-    criterion = nn.NLLLoss()
-
     # Get the data
     test_dataset = NextLineCodeDataset(args.test_files, args.data_root, args.seq_length, args.prev_lines, word_to_idx)
     test_dataset_batcher = NextLineCodeDatasetBatcher(test_dataset, args.batch_size)

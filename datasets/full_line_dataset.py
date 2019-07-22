@@ -8,7 +8,6 @@ from utils import data_utils as du
 
 
 class NextLineCodeDataset(Dataset):
-
     def __init__(self, txt_file, root_folder, sequence_length, previous_lines, vocabulary):
         """
         :param txt_file: File with the relative paths to the files in this dataset.
@@ -44,9 +43,16 @@ class NextLineCodeDataset(Dataset):
             prepared_inputs = []
             position = 0
             while position < len(sample_tokens):
-                current_sample = sample_tokens[position:position + self.previous_lines + 1]
-                prepared_inputs.append(np.concatenate(current_sample[:-1]).ravel())
-                prepared_outputs.append(current_sample[-1])
+                current_sample = np.concatenate(sample_tokens[position:position + self.previous_lines + 1])
+                prepared_outputs.append(current_sample[-self.seq_length:])
+                current_sample = current_sample[:-self.seq_length]
+
+                amount_to_pad = 0 if current_sample.size % self.seq_length == 0 else \
+                    abs(current_sample.size - ((current_sample.size // self.seq_length) + 1) * self.seq_length)
+                current_sample = np.pad(current_sample, (amount_to_pad, 0), mode='constant',
+                                        constant_values=du.PAD_IDX)
+
+                prepared_inputs.append(current_sample.reshape(self.seq_length, -1))
                 position += self.previous_lines + 1
 
             self.loaded_files.append((prepared_inputs, prepared_outputs))
@@ -71,13 +77,12 @@ class NextLineCodeDataset(Dataset):
                                 not t_val.startswith('"""') and
                                 (t_type == tokenize.DEDENT or t_val != "")]
             if processed_tokens:
-                # Split them line by line
                 line_by_line = []
                 all_tokens = np.array(processed_tokens)
                 newlines = np.where(all_tokens == '\n')[0]
                 current_pos = 0
                 for newline_pos in newlines:
-                    line = all_tokens[current_pos:newline_pos]
+                    line = all_tokens[current_pos:newline_pos + 1]
                     current_pos = newline_pos + 1
                     line_by_line.append(self.__vectorize(line))
 
@@ -97,7 +102,6 @@ class NextLineCodeDataset(Dataset):
 
 
 class NextLineCodeDatasetBatcher:
-
     def __init__(self, dataset, batch_size):
         self.dataset = dataset
         self.batch_size = batch_size

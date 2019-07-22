@@ -7,7 +7,7 @@ import torch
 
 from models.lstm_model import LSTMModel
 from models.baseline_model import BaselineRNNModel
-from drivers import nt_models_test_driver, nt_train_driver, nlc_train_driver
+from drivers import nt_models_test_driver, nt_train_driver, nlc_train_driver, nlc_models_test_driver
 
 # Fix random seeds for reproducibility
 np.random.seed(2019)
@@ -107,7 +107,14 @@ def next_token_models_tests():
 
 
 def next_line_models_tests():
-    return None
+    """
+    Tests a model trained for the next line prediction task on both the next token prediction and the
+    next line of code prediction.
+    """
+    model = get_model(args.model)
+    model_save_name = mode_names[args.mode] + '_' + model.save_name
+    nlc_models_test_driver.next_token_prediction_test(model, word_to_idx, device, model_save_name, args)
+    nlc_models_test_driver.next_line_prediction_test(model, word_to_idx, device, model_save_name, args)
 
 
 # Operates as a switch for the different modes.

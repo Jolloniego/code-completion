@@ -71,7 +71,7 @@ def next_line_prediction_test(model, word_to_idx, device, model_name, args):
             for _ in range(args.seq_length):
                 predicted_word = torch.argmax(torch.softmax(predictions, dim=1), dim=1).detach().cpu()
                 final_output.append(predicted_word)
-                predictions, hidden = model(predicted_word.unsqueeze(0), hidden)
+                predictions, hidden = model(predicted_word.unsqueeze(0).to(device), hidden)
 
             final_output = torch.cat(final_output)
             total += 1

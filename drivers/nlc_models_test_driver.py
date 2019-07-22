@@ -53,7 +53,6 @@ def next_line_prediction_test(model, word_to_idx, device, model_name, args):
 
     correct = 0
     total = 0
-    total_loss = 0
     sample, file_changed = test_dataset_batcher.get_batch()
     while sample is not None:
 

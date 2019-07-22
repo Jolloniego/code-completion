@@ -89,7 +89,7 @@ def train_model_next_line():
     Trains the selected model for the next line of code prediction task on the next line dataset.
     After training saves the model on disk and runs the corresponding tests.
     """
-    trained_model = nt_train_driver.train(get_model(args.model), word_to_idx, device, args)
+    trained_model = nlc_train_driver.train(get_model(args.model), word_to_idx, device, args)
     model_save_name = mode_names[args.mode] + '_' + trained_model.save_name
     torch.save(trained_model.state_dict(), os.path.join(args.model_path, model_save_name))
     next_line_models_tests()

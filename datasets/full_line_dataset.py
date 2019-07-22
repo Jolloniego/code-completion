@@ -13,6 +13,7 @@ class NextLineCodeDataset(Dataset):
         :param txt_file: File with the relative paths to the files in this dataset.
         :param root_folder: Folder containing the .py files.
         :param sequence_length: Max length for the sequences of tokens.
+        :param previous_lines: Previous lines to create the input.
         :param vocabulary: word to int dictionary mapping.
         """
         self.root_dir = root_folder
@@ -31,6 +32,12 @@ class NextLineCodeDataset(Dataset):
         return len(self.code_files)
 
     def __getitem__(self, idx):
+        """
+        Loads the selected file and processes it, it then creates and shapes the inputs and output paris.
+        Saves the result to speed up future use.
+        :param idx: int. Index of file to get.
+        :return: Tuple of (inputs, outputs) from the selected file.
+        """
         try:
             return self.loaded_files[idx]
 

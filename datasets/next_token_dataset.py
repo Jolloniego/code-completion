@@ -32,6 +32,11 @@ class NextTokenCodeDataset(Dataset):
         return len(self.code_files)
 
     def __getitem__(self, idx):
+        """
+        Load a file, processes it, caches it for future use and returns the (input, output) pairs.
+        :param idx: int. Index of the file to load.
+        :return: Tuple containing (inputs, outputs) from the selected file.
+        """
         try:
             return self.loaded_files[idx]
 

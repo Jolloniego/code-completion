@@ -4,14 +4,14 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 
-from datasets.next_token_dataset import NextTokenCodeDataset, NextTokenCodeDatasetBatcher
+from datasets.full_line_dataset import NextLineCodeDataset, NextLineCodeDatasetBatcher
 
 
 def train(model, word_to_idx, device, args):
     # Get training and validation data
-    train_dataset = NextTokenCodeDataset(args.train_files, args.data_root, args.seq_length, word_to_idx)
-    val_dataset = NextTokenCodeDataset(args.val_files, args.data_root, args.seq_length, word_to_idx)
-    train_dataset_batcher = NextTokenCodeDatasetBatcher(train_dataset, args.batch_size)
+    train_dataset = NextLineCodeDataset(args.train_files, args.data_root, args.seq_length, args.prev_lines, word_to_idx)
+    val_dataset = NextLineCodeDataset(args.val_files, args.data_root, args.seq_length, args.prev_lines, word_to_idx)
+    train_dataset_batcher = NextLineCodeDatasetBatcher(train_dataset, args.batch_size)
 
     # Create the model, optimizer and criterion to use
     print("The model {}, has {} trainable parameters.".format(model.save_name, model.summary()))
@@ -31,30 +31,34 @@ def train(model, word_to_idx, device, args):
         # Get current training batch
         sample, file_changed = train_dataset_batcher.get_batch()
         while sample is not None:
-            optimiser.zero_grad()
-
-            x = torch.tensor(sample[0], device=device)
-            y = torch.tensor(sample[1], device=device)
 
             if file_changed:
-                hidden = model.init_hidden(len(x))
+                # Will be using one word at a time as input
+                hidden = model.init_hidden(args.seq_length)
 
-            # Get the predictions and compute the loss
-            preds, hidden = model(x, hidden)
-            loss = criterion(preds, y)
+            for idx, current_input in enumerate(sample[0]):
 
-            # Track accuracy as well
-            total += len(x)
-            preds = torch.argmax(nn.functional.softmax(preds, dim=1), dim=1).detach()
-            correct += (preds == y).sum().item()
+                optimiser.zero_grad()
 
-            # Backprop the loss and update params, use gradient clipping if specified
-            loss.backward(retain_graph=True)
-            if args.grad_clip is not None and args.grad_clip > 0:
-                torch.nn.utils.clip_grad_norm_(model.parameters(), args.grad_clip)
-            optimiser.step()
+                x = torch.tensor(current_input, device=device)
+                y = torch.tensor(sample[1][idx], device=device)
 
-            epoch_loss += loss.item() / len(x)
+                # Get the predictions and compute the loss
+                preds, hidden = model(x, hidden)
+                loss = criterion(preds, y)
+
+                # Track accuracy as well
+                total += len(x)
+                preds = torch.argmax(nn.functional.softmax(preds, dim=1), dim=1).detach()
+                correct += (preds == y).sum().item()
+
+                # Backprop the loss and update params, use gradient clipping if specified
+                loss.backward(retain_graph=True)
+                if args.grad_clip is not None and args.grad_clip > 0:
+                    torch.nn.utils.clip_grad_norm_(model.parameters(), args.grad_clip)
+                optimiser.step()
+
+                epoch_loss += loss.item() / len(x)
 
             # Get the next batch
             sample, file_changed = train_dataset_batcher.get_batch()
@@ -75,7 +79,7 @@ def train(model, word_to_idx, device, args):
 
 
 def validate(model, val_dataset, start_time, device, args):
-    val_dataset_batcher = NextTokenCodeDatasetBatcher(val_dataset, args.batch_size)
+    val_dataset_batcher = NextLineCodeDatasetBatcher(val_dataset, args.batch_size)
     criterion = nn.CrossEntropyLoss().to(device)
 
     validation_loss = 0
@@ -84,20 +88,23 @@ def validate(model, val_dataset, start_time, device, args):
 
     sample, file_changed = val_dataset_batcher.get_batch()
     while sample is not None:
-        x = torch.tensor(sample[0], device=device)
-        y = torch.tensor(sample[1], device=device)
 
         if file_changed:
-            hidden = model.init_hidden(len(x))
+            hidden = model.init_hidden(args.seq_length)
 
-        preds, hidden = model(x, hidden)
-        loss = criterion(preds, y).item()
-        validation_loss += loss / len(x)
+        for idx, current_input in enumerate(sample[0]):
 
-        # Track accuracy
-        total += len(x)
-        preds = torch.argmax(nn.functional.softmax(preds, dim=1), dim=1).detach()
-        correct += (preds == y).sum().item()
+            x = torch.tensor(current_input, device=device)
+            y = torch.tensor(sample[1][idx], device=device)
+
+            preds, hidden = model(x, hidden)
+            loss = criterion(preds, y).item()
+            validation_loss += loss / len(x)
+
+            # Track accuracy
+            total += len(x)
+            preds = torch.argmax(nn.functional.softmax(preds, dim=1), dim=1).detach()
+            correct += (preds == y).sum().item()
 
         # Advance to the next batch
         sample, file_changed = val_dataset_batcher.get_batch()

@@ -2,6 +2,7 @@ import os
 import time
 
 import torch
+import numpy as np
 import torch.nn as nn
 
 from datasets.full_line_dataset import NextLineCodeDataset, NextLineCodeDatasetBatcher
@@ -57,8 +58,8 @@ def next_line_prediction_test(model, word_to_idx, device, model_name, args):
     while sample is not None:
         for idx in range(len(sample[0])):
 
-            previous_tokens = torch.tensor(sample[0][idx], device=device).view(1, -1)
-            y = torch.tensor(sample[1][idx])
+            previous_tokens = torch.tensor(np.concatenate(sample[0][idx]), device=device).unsqueeze(0)
+            y = torch.tensor(sample[1][idx])[:-1]  # We want to ignore the newline at the end.
 
             if file_changed:
                 # Feeding one word at a time, so hidden size should be 1.
@@ -68,7 +69,7 @@ def next_line_prediction_test(model, word_to_idx, device, model_name, args):
             predictions, hidden = model(previous_tokens, hidden)
 
             final_output = []
-            for _ in range(args.seq_length):
+            for _ in range(len(y)):
                 predicted_word = torch.argmax(torch.softmax(predictions, dim=1), dim=1).detach().cpu()
                 final_output.append(predicted_word)
                 predictions, hidden = model(predicted_word.unsqueeze(0).to(device), hidden)

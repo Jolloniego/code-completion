@@ -7,6 +7,7 @@ import torch
 
 from models.lstm_model import LSTMModel
 from models.baseline_model import BaselineRNNModel
+from models.baseline_seq2seq import BaselineEncoderDecoderModel
 from drivers import nt_models_test_driver, nt_train_driver, nlc_train_driver, nlc_models_test_driver
 
 # Fix random seeds for reproducibility
@@ -31,8 +32,11 @@ parser.add_argument('--mode', type=int, default=1,
                          '1 - Train model on next-line prediction data.\n'
                          '2 - Test models trained on next-token tasks.\n'
                          '3 - Test models trained on next-line prediction.\n')
-parser.add_argument('--model', type=int, default=0,
-                    help='Model to use. 0 = Baseline model. 1 = Basic LSTM model.')
+parser.add_argument('--model', type=int, default=2,
+                    help='Model to use.\n'
+                         '0 = Baseline model.\n'
+                         '1 = Basic LSTM model.\n'
+                         '2 = Baseline EncoderDecoder model')
 parser.add_argument('--vocab_path', type=str, default='data/vocab.p', help='Path to vocab.p file.')
 parser.add_argument('--cuda', type=str,
                     help='Cuda card to use, format: "cuda:int_number". Leave unused to use CPU')
@@ -63,14 +67,24 @@ def get_model(model_id):
     """
     Returns the object associated to the model selected in the args.
     """
-    if model_id == 0:
-        return BaselineRNNModel(vocab_size=len(word_to_idx), device=device,
-                                embedding_dim=args.embedding_dim, dropout=args.dropout).to(device)
-    elif model_id == 1:
-        return LSTMModel(vocab_size=len(word_to_idx), device=device,
-                         embedding_dim=args.embedding_dim, dropout=args.dropout).to(device)
+    if args.mode in [0, 2]:
+        if model_id == 0:
+            return BaselineRNNModel(vocab_size=len(word_to_idx), device=device,
+                                    embedding_dim=args.embedding_dim, dropout=args.dropout).to(device)
+        elif model_id == 1:
+            return LSTMModel(vocab_size=len(word_to_idx), device=device,
+                             embedding_dim=args.embedding_dim, dropout=args.dropout).to(device)
+        else:
+            raise ValueError("Model not known. Available Models:\n"
+                             "0 for BaselineRNNModel.\n"
+                             "1 for BasicLSTMModel.")
     else:
-        raise ValueError("Model not known. Use 0 for BaselineRNNModel. 1 for BasicLSTMModel.")
+        if model_id == 2:
+            return BaselineEncoderDecoderModel(len(word_to_idx), embedding_dim=300, dropout=args.dropout,
+                                               device=device).to(device)
+        else:
+            raise ValueError("Model not known. Available Models:\n"
+                             "2 for BaselineEncoderDecoderModel.")
 
 
 def train_model_next_token():

@@ -6,6 +6,8 @@ import torch.optim as optim
 
 from datasets.full_line_dataset import NextLineCodeDataset, NextLineCodeDatasetBatcher
 
+from models.baseline_seq2seq import BaselineEncoderDecoderModel
+
 
 def train(model, word_to_idx, device, args):
     # Get training and validation data
@@ -14,9 +16,12 @@ def train(model, word_to_idx, device, args):
     train_dataset_batcher = NextLineCodeDatasetBatcher(train_dataset, args.batch_size)
 
     # Create the model, optimizer and criterion to use
+    model = BaselineEncoderDecoderModel(len(word_to_idx), 300, args.dropout, device)
+
     print("The model {}, has {} trainable parameters.".format(model.save_name, model.summary()))
-    optimiser = optim.Adam(model.parameters(), lr=args.lr)
-    criterion = nn.CrossEntropyLoss().to(device)
+    encoder_optimiser = optim.Adam(model.encoder.parameters(), lr=args.lr)
+    decoder_optimiser = optim.Adam(model.decoder.parameters(), lr=args.lr)
+    criterion = nn.NLLLoss().to(device)
 
     train_start = time.time()
 
@@ -24,47 +29,45 @@ def train(model, word_to_idx, device, args):
         model.train()
 
         epoch_loss = 0
-        correct = 0
-        total = 0
 
         epoch_start = time.time()
         # Get current training batch
         sample, file_changed = train_dataset_batcher.get_batch()
         while sample is not None:
 
+            encoder_optimiser.zero_grad()
+            decoder_optimiser.zero_grad()
+
             if file_changed:
-                # Will be using one word at a time as input
-                hidden = model.init_hidden(args.seq_length)
+                encoder_hidden = model.encoder.init_hidden()
 
-            for idx, current_input in enumerate(sample[0]):
+            loss = 0
 
-                optimiser.zero_grad()
+            for idx, encoder_input in enumerate(sample[0]):
+                #encoder_hidden = model.encoder.init_hidden()
 
-                x = torch.tensor(current_input, device=device)
-                y = torch.tensor(sample[1][idx], device=device)
+                encoder_input = torch.tensor(encoder_input, device=device)
+                target_tensor = torch.tensor(sample[1][idx], device=device)
 
-                # Get the predictions and compute the loss
-                preds, hidden = model(x, hidden)
-                loss = criterion(preds, y)
+                current_loss, encoder_hidden = model(encoder_input, target_tensor, encoder_hidden, criterion)
+                loss += current_loss
 
-                # Track accuracy as well
-                total += 1
-                preds = torch.argmax(nn.functional.softmax(preds, dim=1), dim=1).detach()
-                correct += 1 if torch.equal(preds, y) else 0
+            # Track the running epoch loss
+            epoch_loss += loss.item() / len(sample[0])
 
-                # Backprop the loss and update params, use gradient clipping if specified
-                loss.backward(retain_graph=True)
-                if args.grad_clip is not None and args.grad_clip > 0:
-                    torch.nn.utils.clip_grad_norm_(model.parameters(), args.grad_clip)
-                optimiser.step()
+            # Backprop the loss and update params, use gradient clipping if specified
+            loss.backward()#retain_graph=True)
+            if args.grad_clip is not None and args.grad_clip > 0:
+                torch.nn.utils.clip_grad_norm_(model.parameters(), args.grad_clip)
 
-                epoch_loss += loss.item() / len(x)
+            encoder_optimiser.step()
+            decoder_optimiser.step()
 
             # Get the next batch
             sample, file_changed = train_dataset_batcher.get_batch()
 
-        print("Epoch {} | Loss {:.10} | Accuracy {:.2f}% | Time taken {:.2f} seconds"
-              .format(epoch, epoch_loss, (correct / total * 100), time.time() - epoch_start))
+        print("Epoch {} | Loss {:.10f} | Time taken {:.2f} seconds"
+              .format(epoch, epoch_loss, time.time() - epoch_start))
 
         # Validate if we need to
         if epoch % args.val_epochs == 0:

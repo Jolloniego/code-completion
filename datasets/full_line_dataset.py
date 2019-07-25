@@ -61,6 +61,9 @@ class NextLineCodeDataset(Dataset):
 
                 self.loaded_files.append((prepared_inputs, prepared_outputs))
 
+            if len(sample_tokens) == 0:
+                self.loaded_files.append(([], []))
+
             return self.loaded_files[idx]
 
     def __obtain_tokens(self, filename):

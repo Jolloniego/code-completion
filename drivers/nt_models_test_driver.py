@@ -1,17 +1,15 @@
-import os
 import time
 
 import torch
-import numpy as np
 import torch.nn as nn
 
 from datasets.full_line_dataset import NextLineCodeDataset, NextLineCodeDatasetBatcher
 from datasets.next_token_dataset import NextTokenCodeDataset, NextTokenCodeDatasetBatcher
 
 
-def next_token_prediction_test(model, word_to_idx, device, model_name, args):
+def next_token_prediction_test(model, word_to_idx, device, model_path, args):
     # Load the model and set it to eval mode.
-    model.load_state_dict(torch.load(os.path.join(args.model_path, model_name)))
+    model.load_state_dict(torch.load(model_path))
     model.eval()
 
     # Get the data
@@ -41,9 +39,9 @@ def next_token_prediction_test(model, word_to_idx, device, model_name, args):
     print("Next-Token Test Set | Accuracy {:.2f} % | Time taken {:.2f} seconds".format(correct / total * 100, time.time() - start))
 
 
-def next_line_prediction_test(model, word_to_idx, device, model_name, args):
+def next_line_prediction_test(model, word_to_idx, device, model_path, args):
     # Load the model and set it to eval mode.
-    model.load_state_dict(torch.load(os.path.join(args.model_path, model_name)))
+    model.load_state_dict(torch.load(model_path))
     model.eval()
 
     # Get the data
@@ -56,10 +54,11 @@ def next_line_prediction_test(model, word_to_idx, device, model_name, args):
     total = 0
     sample, file_changed = test_dataset_batcher.get_batch()
     while sample is not None:
-        for idx in range(len(sample[0])):
 
-            previous_tokens = torch.tensor(np.concatenate(sample[0][idx]), device=device).unsqueeze(0)
-            y = torch.tensor(sample[1][idx])[:-1]  # We want to ignore the newline at the end.
+        for idx, current_input in enumerate(sample[0]):
+
+            previous_tokens = torch.tensor(current_input, device=device).unsqueeze(0)
+            y = torch.tensor(sample[1][idx])
 
             if file_changed:
                 # Feeding one word at a time, so hidden size should be 1.

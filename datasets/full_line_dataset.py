@@ -46,18 +46,20 @@ class NextLineCodeDataset(Dataset):
             filename = self.code_files[idx]
             sample_tokens = [line for line in self.__obtain_tokens(filename) if line != []]
 
-            prepared_outputs = []
-            prepared_inputs = []
             position = 0
             while position < len(sample_tokens):
                 current_sample = sample_tokens[position:position + self.previous_lines + 1]
-                if len(current_sample) > self.previous_lines:
-                    prepared_outputs.append(current_sample[-1])
-                    current_sample = current_sample[:-1]
-                    prepared_inputs.append(current_sample)
-                position += self.previous_lines + 1
+                prepared_outputs = current_sample[1:]
+                prepared_inputs = current_sample[:-1]
+                # if len(current_sample) > self.previous_lines:
+                #     out = current_sample[-1][:20]
+                #     out = np.pad(out, (0, self.seq_length - len(out)), mode='constant', constant_values=du.PAD_IDX)
+                #     prepared_outputs.append(out)
+                #     current_sample = current_sample[:-1]
+                #     prepared_inputs.append(current_sample)
+                position += self.previous_lines
 
-            self.loaded_files.append((prepared_inputs, prepared_outputs))
+                self.loaded_files.append((prepared_inputs, prepared_outputs))
 
             return self.loaded_files[idx]
 

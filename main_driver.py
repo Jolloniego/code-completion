@@ -18,7 +18,9 @@ torch.manual_seed(2019)
 parser = argparse.ArgumentParser()
 parser.add_argument('--data_root', type=str, default='data/repos',
                     help='Path root folder containing the cloned repositories.')
-parser.add_argument('--model_path', type=str, default='saved_models', help='Path to folder where models will be saved.')
+parser.add_argument('--model_path', type=str, default='saved_models/Model',
+                    help='Path to model save file. _NT/NLC_ModelDescription.pt will be added to the end.\n'
+                         ' (e.g., {Custom Name}_NT_BaselineRNNModel.pt')
 # Files containing paths to data
 parser.add_argument('--train_files', type=str, default='data/train.txt',
                     help='Path to file containing the training data split.')
@@ -27,12 +29,12 @@ parser.add_argument('--val_files', type=str, default='data/validation.txt',
 parser.add_argument('--test_files', type=str, default='data/test.txt',
                     help='Path to file containing the test data split.')
 # Run configurations
-parser.add_argument('--mode', type=int, default=1,
+parser.add_argument('--mode', type=int, default=0,
                     help='0 - Train model on next-token prediction data.\n'
                          '1 - Train model on next-line prediction data.\n'
                          '2 - Test models trained on next-token tasks.\n'
                          '3 - Test models trained on next-line prediction.\n')
-parser.add_argument('--model', type=int, default=2,
+parser.add_argument('--model', type=int, default=0,
                     help='Model to use.\n'
                          '0 = Baseline model.\n'
                          '1 = Basic LSTM model.\n'
@@ -93,8 +95,8 @@ def train_model_next_token():
     After training, saves the model to disk and runs the corresponding test suite.
     """
     trained_model = nt_train_driver.train(get_model(args.model), word_to_idx, device, args)
-    model_save_name = mode_names[args.mode] + '_' + trained_model.save_name
-    torch.save(trained_model.state_dict(), os.path.join(args.model_path, model_save_name))
+    model_save_name = args.model_path + '_' + mode_names[args.mode] + '_' + trained_model.save_name
+    torch.save(trained_model.state_dict(), model_save_name)
     next_token_models_tests()
 
 
@@ -104,7 +106,7 @@ def train_model_next_line():
     After training saves the model on disk and runs the corresponding tests.
     """
     trained_model = nlc_train_driver.train(get_model(args.model), word_to_idx, device, args)
-    model_save_name = mode_names[args.mode] + '_' + trained_model.save_name
+    model_save_name = args.model_path + '_' + mode_names[args.mode] + '_' + trained_model.save_name
     torch.save(trained_model.state_dict(), os.path.join(args.model_path, model_save_name))
     next_line_models_tests()
 
@@ -115,7 +117,7 @@ def next_token_models_tests():
     next line of code prediction.
     """
     model = get_model(args.model)
-    model_save_name = mode_names[args.mode] + '_' + model.save_name
+    model_save_name = args.model_path + '_' + mode_names[args.mode] + '_' + model.save_name
     nt_models_test_driver.next_token_prediction_test(model, word_to_idx, device, model_save_name, args)
     nt_models_test_driver.next_line_prediction_test(model, word_to_idx, device, model_save_name, args)
 
@@ -126,7 +128,7 @@ def next_line_models_tests():
     next line of code prediction.
     """
     model = get_model(args.model)
-    model_save_name = mode_names[args.mode] + '_' + model.save_name
+    model_save_name = args.model_path + '_' + mode_names[args.mode] + '_' + model.save_name
     nlc_models_test_driver.next_token_prediction_test(model, word_to_idx, device, model_save_name, args)
     nlc_models_test_driver.next_line_prediction_test(model, word_to_idx, device, model_save_name, args)
 

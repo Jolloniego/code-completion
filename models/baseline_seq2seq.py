@@ -52,6 +52,7 @@ class BaselineEncoderDecoderModel(nn.Module):
         self.encoder = BaselineEncoder(vocab_size, embedding_dim, dropout, device)
         self.decoder = BaselineDecoder(vocab_size, device)
         self.device = device
+        self.vocab_size = vocab_size
         self.save_name = 'BaselineEncoderDecoder.pt'
 
     def forward(self, encoder_input, target_tensor, encoder_hidden, criterion):
@@ -62,17 +63,25 @@ class BaselineEncoderDecoderModel(nn.Module):
         decoder_input = torch.tensor([du.PAD_IDX], device=self.device)
         decoder_hidden = encoder_hidden
 
+        # Keep track of decoder outputs
+        decoder_outputs = torch.zeros(len(target_tensor), dtype=torch.long, device=self.device)
+
         # Use teacher forcing for now (use target as next input)
         for di in range(target_tensor.size(0)):
             decoder_out, decoder_hidden = self.decoder(decoder_input, decoder_hidden)
             loss += criterion(decoder_out, target_tensor[di].unsqueeze(0))
             decoder_input = target_tensor[di]
+            decoder_outputs[di] = decoder_out.data.topk(1, dim=1)[1].item()
 
-        return loss, encoder_hidden
+        return loss, encoder_hidden, decoder_outputs
 
     def train(self, mode=True):
         self.encoder.train(mode)
         self.decoder.train(mode)
+
+    def eval(self):
+        self.encoder.eval()
+        self.decoder.eval()
 
     def summary(self):
         encoder_parameters = filter(lambda p: p.requires_grad, self.encoder.parameters())

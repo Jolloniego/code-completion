@@ -6,8 +6,6 @@ import torch.optim as optim
 
 from datasets.full_line_dataset import NextLineCodeDataset, NextLineCodeDatasetBatcher
 
-from models.baseline_seq2seq import BaselineEncoderDecoderModel
-
 
 def train(model, word_to_idx, device, args):
     # Get training and validation data
@@ -15,9 +13,7 @@ def train(model, word_to_idx, device, args):
     val_dataset = NextLineCodeDataset(args.val_files, args.data_root, args.seq_length, args.prev_lines, word_to_idx)
     train_dataset_batcher = NextLineCodeDatasetBatcher(train_dataset, args.batch_size)
 
-    # Create the model, optimizer and criterion to use
-    model = BaselineEncoderDecoderModel(len(word_to_idx), 300, args.dropout, device)
-
+    # Describe the model, create the optimizer and criterion to use
     print("The model {}, has {} trainable parameters.".format(model.save_name, model.summary()))
     encoder_optimiser = optim.Adam(model.encoder.parameters(), lr=args.lr)
     decoder_optimiser = optim.Adam(model.decoder.parameters(), lr=args.lr)
@@ -44,19 +40,18 @@ def train(model, word_to_idx, device, args):
             loss = 0
 
             for idx, encoder_input in enumerate(sample[0]):
-                #encoder_hidden = model.encoder.init_hidden()
 
                 encoder_input = torch.tensor(encoder_input, device=device)
                 target_tensor = torch.tensor(sample[1][idx], device=device)
 
-                current_loss, encoder_hidden = model(encoder_input, target_tensor, encoder_hidden, criterion)
+                current_loss, encoder_hidden, _ = model(encoder_input, target_tensor, encoder_hidden, criterion)
                 loss += current_loss
 
             # Track the running epoch loss
             epoch_loss += loss.item() / len(sample[0])
 
             # Backprop the loss and update params, use gradient clipping if specified
-            loss.backward()#retain_graph=True)
+            loss.backward()
             if args.grad_clip is not None and args.grad_clip > 0:
                 torch.nn.utils.clip_grad_norm_(model.parameters(), args.grad_clip)
 
@@ -72,7 +67,7 @@ def train(model, word_to_idx, device, args):
         # Validate if we need to
         if epoch % args.val_epochs == 0:
             model.eval()
-            validate(model, val_dataset, time.time(), device, args)
+            validate(model, val_dataset, criterion, device, args)
 
         # Reset the batcher
         train_dataset_batcher.reset_batcher()
@@ -81,33 +76,36 @@ def train(model, word_to_idx, device, args):
     return model
 
 
-def validate(model, val_dataset, start_time, device, args):
+def validate(model, val_dataset, criterion, device, args):
     val_dataset_batcher = NextLineCodeDatasetBatcher(val_dataset, args.batch_size)
-    criterion = nn.CrossEntropyLoss().to(device)
+    model.eval()
 
     validation_loss = 0
     total = 0
     correct = 0
 
+    start_time = time.time()
+
+    # Get current batch
     sample, file_changed = val_dataset_batcher.get_batch()
     while sample is not None:
 
         if file_changed:
-            hidden = model.init_hidden(args.seq_length)
+            encoder_hidden = model.encoder.init_hidden()
 
-        for idx, current_input in enumerate(sample[0]):
+        loss = 0
+        for idx, encoder_input in enumerate(sample[0]):
+            encoder_input = torch.tensor(encoder_input, device=device)
+            target_tensor = torch.tensor(sample[1][idx], device=device)
 
-            x = torch.tensor(current_input, device=device)
-            y = torch.tensor(sample[1][idx], device=device)
-
-            preds, hidden = model(x, hidden)
-            loss = criterion(preds, y).item()
-            validation_loss += loss / len(x)
+            current_loss, encoder_hidden, decoder_outs = model(encoder_input, target_tensor, encoder_hidden, criterion)
+            loss += current_loss
 
             # Track accuracy
             total += 1
-            preds = torch.argmax(nn.functional.softmax(preds, dim=1), dim=1).detach()
-            correct += 1 if torch.equal(preds, y) else 0
+            correct += 1 if torch.equal(target_tensor, decoder_outs) else 0
+
+        validation_loss += loss / len(sample[0])
 
         # Advance to the next batch
         sample, file_changed = val_dataset_batcher.get_batch()

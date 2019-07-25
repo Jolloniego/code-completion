@@ -1,5 +1,4 @@
 import argparse
-import os
 import pickle
 
 import numpy as np
@@ -29,12 +28,12 @@ parser.add_argument('--val_files', type=str, default='data/validation.txt',
 parser.add_argument('--test_files', type=str, default='data/test.txt',
                     help='Path to file containing the test data split.')
 # Run configurations
-parser.add_argument('--mode', type=int, default=0,
+parser.add_argument('--mode', type=int, default=1,
                     help='0 - Train model on next-token prediction data.\n'
                          '1 - Train model on next-line prediction data.\n'
                          '2 - Test models trained on next-token tasks.\n'
                          '3 - Test models trained on next-line prediction.\n')
-parser.add_argument('--model', type=int, default=0,
+parser.add_argument('--model', type=int, default=2,
                     help='Model to use.\n'
                          '0 = Baseline model.\n'
                          '1 = Basic LSTM model.\n'
@@ -77,7 +76,7 @@ def get_model(model_id):
             return LSTMModel(vocab_size=len(word_to_idx), device=device,
                              embedding_dim=args.embedding_dim, dropout=args.dropout).to(device)
         else:
-            raise ValueError("Model not known. Available Models:\n"
+            raise ValueError("Model not known or not applicable to selected mode. Available Models:\n"
                              "0 for BaselineRNNModel.\n"
                              "1 for BasicLSTMModel.")
     else:
@@ -85,7 +84,7 @@ def get_model(model_id):
             return BaselineEncoderDecoderModel(len(word_to_idx), embedding_dim=300, dropout=args.dropout,
                                                device=device).to(device)
         else:
-            raise ValueError("Model not known. Available Models:\n"
+            raise ValueError("Model not known or not applicable to selected mode. Available Models:\n"
                              "2 for BaselineEncoderDecoderModel.")
 
 
@@ -107,7 +106,7 @@ def train_model_next_line():
     """
     trained_model = nlc_train_driver.train(get_model(args.model), word_to_idx, device, args)
     model_save_name = args.model_path + '_' + mode_names[args.mode] + '_' + trained_model.save_name
-    torch.save(trained_model.state_dict(), os.path.join(args.model_path, model_save_name))
+    torch.save(trained_model.state_dict(), model_save_name)
     next_line_models_tests()
 
 

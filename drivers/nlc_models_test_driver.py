@@ -1,4 +1,3 @@
-import os
 import time
 
 import torch
@@ -8,9 +7,9 @@ from datasets.full_line_dataset import NextLineCodeDataset, NextLineCodeDatasetB
 from datasets.next_token_dataset import NextTokenCodeDataset, NextTokenCodeDatasetBatcher
 
 
-def next_token_prediction_test(model, word_to_idx, device, model_name, args):
+def next_token_prediction_test(model, word_to_idx, device, model_path, args):
     # Load the model and set it to eval mode.
-    model.load_state_dict(torch.load(os.path.join(args.model_path, model_name)))
+    model.load_state_dict(torch.load(model_path))
     model.eval()
 
     # Get the data
@@ -40,9 +39,9 @@ def next_token_prediction_test(model, word_to_idx, device, model_name, args):
     print("Next-Token Test Set | Accuracy {:.2f} % | Time taken {:.2f} seconds".format(correct / total * 100, time.time() - start))
 
 
-def next_line_prediction_test(model, word_to_idx, device, model_name, args):
+def next_line_prediction_test(model, word_to_idx, device, model_path, args):
     # Load the model and set it to eval mode.
-    model.load_state_dict(torch.load(os.path.join(args.model_path, model_name)))
+    model.load_state_dict(torch.load(model_path))
     model.eval()
 
     # Get the data

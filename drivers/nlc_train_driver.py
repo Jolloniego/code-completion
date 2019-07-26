@@ -48,7 +48,7 @@ def train(model, word_to_idx, device, args):
                 loss += current_loss
 
             # Track the running epoch loss
-            epoch_loss += loss.item() / len(sample[0])
+            epoch_loss += loss.item()
 
             # Backprop the loss and update params, use gradient clipping if specified
             loss.backward()
@@ -66,7 +66,6 @@ def train(model, word_to_idx, device, args):
 
         # Validate if we need to
         if epoch % args.val_epochs == 0:
-            model.eval()
             validate(model, val_dataset, criterion, device, args)
 
         # Reset the batcher

@@ -88,46 +88,40 @@ def get_model(model_id):
                              "2 for BaselineEncoderDecoderModel.")
 
 
-def train_model_next_token():
+def train_model_next_token(model):
     """
     Trains the selected model (from args) for the next token prediction task on the next-token dataset.
     After training, saves the model to disk and runs the corresponding test suite.
     """
-    trained_model = nt_train_driver.train(get_model(args.model), word_to_idx, device, args)
-    model_save_name = args.model_path + '_' + mode_names[args.mode] + '_' + trained_model.save_name
+    trained_model = nt_train_driver.train(model, word_to_idx, device, args)
     torch.save(trained_model.state_dict(), model_save_name)
-    next_token_models_tests()
+    next_token_models_tests(model)
 
 
-def train_model_next_line():
+def train_model_next_line(model):
     """
     Trains the selected model for the next line of code prediction task on the next line dataset.
     After training saves the model on disk and runs the corresponding tests.
     """
-    trained_model = nlc_train_driver.train(get_model(args.model), word_to_idx, device, args)
-    model_save_name = args.model_path + '_' + mode_names[args.mode] + '_' + trained_model.save_name
+    trained_model = nlc_train_driver.train(model, word_to_idx, device, args)
     torch.save(trained_model.state_dict(), model_save_name)
-    next_line_models_tests()
+    next_line_models_tests(model)
 
 
-def next_token_models_tests():
+def next_token_models_tests(model):
     """
     Tests a model trained for the next token prediction task on both the next token prediction and the
     next line of code prediction.
     """
-    model = get_model(args.model)
-    model_save_name = args.model_path + '_' + mode_names[args.mode] + '_' + model.save_name
     nt_models_test_driver.next_token_prediction_test(model, word_to_idx, device, model_save_name, args)
     nt_models_test_driver.next_line_prediction_test(model, word_to_idx, device, model_save_name, args)
 
 
-def next_line_models_tests():
+def next_line_models_tests(model):
     """
     Tests a model trained for the next line prediction task on both the next token prediction and the
     next line of code prediction.
     """
-    model = get_model(args.model)
-    model_save_name = args.model_path + '_' + mode_names[args.mode] + '_' + model.save_name
     nlc_models_test_driver.next_token_prediction_test(model, word_to_idx, device, model_save_name, args)
     nlc_models_test_driver.next_line_prediction_test(model, word_to_idx, device, model_save_name, args)
 
@@ -149,7 +143,10 @@ mode_names = {
 
 if __name__ == '__main__':
     try:
-        mode_functions[args.mode]()
+        selected_model = get_model(args.model)
+        model_save_name = args.model_path + '_' + mode_names[args.mode] + '_' + selected_model.save_name
+        print("Model File:", model_save_name)
+        mode_functions[args.mode](selected_model)
     except KeyError:
         print('Unrecognised mode. Available modes are:\n'
               '0 - Train model on next-token prediction data.\n'

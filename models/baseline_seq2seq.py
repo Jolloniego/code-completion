@@ -57,7 +57,7 @@ class BaselineEncoderDecoderModel(nn.Module):
         self.vocab_size = vocab_size
         self.save_name = 'BaselineEncoderDecoder.pt'
 
-    def forward(self, encoder_input, target_tensor, encoder_hidden, criterion):
+    def forward(self, encoder_input, target_tensor, encoder_hidden, criterion=None):
         loss = 0
 
         for ei in range(encoder_input.size(0)):
@@ -71,7 +71,10 @@ class BaselineEncoderDecoderModel(nn.Module):
 
         for di in range(target_tensor.size(0)):
             decoder_out, decoder_hidden = self.decoder(decoder_input, decoder_hidden)
-            loss += criterion(decoder_out, target_tensor[di].unsqueeze(0))
+
+            if criterion is not None:
+                loss += criterion(decoder_out, target_tensor[di].unsqueeze(0))
+
             decoder_outputs[di] = decoder_out.data.topk(1, dim=1)[1].item()
             if self.train_mode:
                 decoder_input = target_tensor[di]

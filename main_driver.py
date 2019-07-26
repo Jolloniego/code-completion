@@ -28,12 +28,12 @@ parser.add_argument('--val_files', type=str, default='data/validation.txt',
 parser.add_argument('--test_files', type=str, default='data/test.txt',
                     help='Path to file containing the test data split.')
 # Run configurations
-parser.add_argument('--mode', type=int, default=1,
+parser.add_argument('--mode', type=int, default=0,
                     help='0 - Train model on next-token prediction data.\n'
                          '1 - Train model on next-line prediction data.\n'
                          '2 - Test models trained on next-token tasks.\n'
                          '3 - Test models trained on next-line prediction.\n')
-parser.add_argument('--model', type=int, default=2,
+parser.add_argument('--model', type=int, default=0,
                     help='Model to use.\n'
                          '0 = Baseline model.\n'
                          '1 = Basic LSTM model.\n'

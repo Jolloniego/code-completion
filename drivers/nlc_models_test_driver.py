@@ -22,17 +22,19 @@ def next_token_prediction_test(model, word_to_idx, device, model_path, args):
     total = 0
     sample, file_changed = test_dataset_batcher.get_batch()
     while sample is not None:
-        x = torch.tensor(sample[0], device=device)
-        y = torch.tensor(sample[1])
-
         if file_changed:
-            hidden = model.init_hidden(len(x))
+            encoder_hidden = model.encoder.init_hidden()
 
-        preds, hidden = model(x, hidden)
-        preds = torch.argmax(nn.functional.softmax(preds, dim=1), dim=1).detach().cpu()
+        for idx, encoder_input in enumerate(sample[0]):
+            encoder_input = torch.tensor(encoder_input, device=device)
+            target_tensor = torch.tensor(sample[1][idx], device=device).unsqueeze(0)
 
-        correct += (preds == y).sum().item()
-        total += len(x)
+            _, _, decoder_outs = model(encoder_input, target_tensor, encoder_hidden)
+
+            # Track accuracy
+            total += 1
+            correct += 1 if torch.equal(target_tensor, decoder_outs) else 0
+
         # Advance to the next batch
         sample, file_changed = test_dataset_batcher.get_batch()
 
@@ -56,23 +58,20 @@ def next_line_prediction_test(model, word_to_idx, device, model_path, args):
     while sample is not None:
 
         if file_changed:
-            hidden = model.init_hidden(args.seq_length)
+            encoder_hidden = model.encoder.init_hidden()
 
-        for idx, current_input in enumerate(sample[0]):
+        for idx, encoder_input in enumerate(sample[0]):
+            encoder_input = torch.tensor(encoder_input, device=device)
+            target_tensor = torch.tensor(sample[1][idx], device=device)
 
-            x = torch.tensor(current_input, device=device)
-            y = torch.tensor(sample[1][idx], device=device)
-
-            preds, hidden = model(x, hidden)
+            _, _, decoder_outs = model(encoder_input, target_tensor, encoder_hidden)
 
             # Track accuracy
             total += 1
-            preds = torch.argmax(nn.functional.softmax(preds, dim=1), dim=1).detach()
-            correct += 1 if torch.equal(preds, y) else 0
+            correct += 1 if torch.equal(target_tensor, decoder_outs) else 0
 
         # Advance to the next batch
         sample, file_changed = test_dataset_batcher.get_batch()
 
     print("Next-Line Test Set | Accuracy {:.2f} % | Time taken {:.2f} seconds"
           .format(correct / total * 100, time.time() - start))
-

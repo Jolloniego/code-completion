@@ -9,4 +9,5 @@
 - To build the vocabulary on the data specified by train.txt run build_vocabulary.py with appropriate arguments
   if the train.txt file was changed delete the vocab.p file and build the vocabulary again.
 
--
+- To run an experiment just run 'python3 main_driver.py' with the desired arguments or write a script for it.
+- Use python3 main_driver.py -h for detailed help on the possible arguments.

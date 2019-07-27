@@ -13,7 +13,6 @@ class NextLineCodeDataset(Dataset):
         :param txt_file: File with the relative paths to the files in this dataset.
         :param root_folder: Folder containing the .py files.
         :param sequence_length: Max length for the sequences of tokens.
-        :param previous_lines: Previous lines to create the input.
         :param vocabulary: word to int dictionary mapping.
         """
         self.root_dir = root_folder

@@ -9,8 +9,8 @@ from datasets.full_line_dataset import NextLineCodeDataset, NextLineCodeDatasetB
 
 def train(model, word_to_idx, device, args):
     # Get training and validation data
-    train_dataset = NextLineCodeDataset(args.train_files, args.data_root, args.seq_length, args.prev_lines, word_to_idx)
-    val_dataset = NextLineCodeDataset(args.val_files, args.data_root, args.seq_length, args.prev_lines, word_to_idx)
+    train_dataset = NextLineCodeDataset(args.train_files, args.data_root, args.seq_length, word_to_idx)
+    val_dataset = NextLineCodeDataset(args.val_files, args.data_root, args.seq_length, word_to_idx)
     train_dataset_batcher = NextLineCodeDatasetBatcher(train_dataset, args.batch_size)
 
     # Describe the model, create the optimizer and criterion to use

@@ -48,7 +48,7 @@ def next_line_prediction_test(model, word_to_idx, device, model_path, args):
     model.eval()
 
     # Get the data
-    test_dataset = NextLineCodeDataset(args.test_files, args.data_root, args.seq_length, args.prev_lines, word_to_idx)
+    test_dataset = NextLineCodeDataset(args.test_files, args.data_root, args.seq_length, word_to_idx)
     test_dataset_batcher = NextLineCodeDatasetBatcher(test_dataset, args.batch_size)
 
     start = time.time()

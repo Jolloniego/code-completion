@@ -49,10 +49,11 @@ def train(model, word_to_idx, device, args):
             correct += (preds == y).sum().item()
 
             # Backprop the loss and update params, use gradient clipping if specified
-            loss.backward(retain_graph=True)
+            loss.backward()
             if args.grad_clip is not None and args.grad_clip > 0:
                 torch.nn.utils.clip_grad_norm_(model.parameters(), args.grad_clip)
             optimiser.step()
+            hidden = model.detach_hidden(hidden)
 
             epoch_loss += loss.item() / len(x)
 
@@ -98,6 +99,8 @@ def validate(model, val_dataset, start_time, device, args):
         total += len(x)
         preds = torch.argmax(nn.functional.softmax(preds, dim=1), dim=1).detach()
         correct += (preds == y).sum().item()
+
+        hidden = model.detach_hidden(hidden)
 
         # Advance to the next batch
         sample, file_changed = val_dataset_batcher.get_batch()

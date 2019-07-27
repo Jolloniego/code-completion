@@ -33,6 +33,9 @@ def next_token_prediction_test(model, word_to_idx, device, model_path, args):
 
         correct += (preds == y).sum().item()
         total += len(x)
+
+        hidden = model.detach_hidden(hidden)
+
         # Advance to the next batch
         sample, file_changed = test_dataset_batcher.get_batch()
 
@@ -76,6 +79,8 @@ def next_line_prediction_test(model, word_to_idx, device, model_path, args):
             final_output = torch.cat(final_output)
             total += 1
             correct += 1 if torch.equal(final_output, y) else 0
+
+            hidden = model.detach_hidden(hidden)
 
         # Advance to the next batch
         sample, file_changed = test_dataset_batcher.get_batch()

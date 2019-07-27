@@ -29,6 +29,10 @@ class LSTMModel(nn.Module):
     def init_hidden(self, batch_size):
         return torch.zeros(1, batch_size, 500).to(self.device), torch.zeros(1, batch_size, 500).to(self.device)
 
+    @staticmethod
+    def detach_hidden(hidden):
+        return hidden[0].detach(), hidden[1].detach()
+
     def summary(self):
         model_parameters = filter(lambda p: p.requires_grad, self.parameters())
         params = sum([np.prod(p.size()) for p in model_parameters])

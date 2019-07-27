@@ -8,7 +8,7 @@ from utils import data_utils as du
 
 
 class NextLineCodeDataset(Dataset):
-    def __init__(self, txt_file, root_folder, sequence_length, previous_lines, vocabulary):
+    def __init__(self, txt_file, root_folder, sequence_length, vocabulary):
         """
         :param txt_file: File with the relative paths to the files in this dataset.
         :param root_folder: Folder containing the .py files.
@@ -18,7 +18,6 @@ class NextLineCodeDataset(Dataset):
         """
         self.root_dir = root_folder
         self.seq_length = sequence_length
-        self.previous_lines = previous_lines
         self.vocabulary = vocabulary
         self.code_files = []
 

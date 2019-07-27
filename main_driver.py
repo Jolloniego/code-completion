@@ -47,8 +47,6 @@ parser.add_argument('--val_epochs', type=int, default=1,
 # Hyperparameters
 parser.add_argument('--batch_size', type=int, default=32, help='Batch size to use.')
 parser.add_argument('--seq_length', type=int, default=20, help='Sequence lengths to use.')
-parser.add_argument('--prev_lines', type=int, default=32,
-                    help='Number of previous lines to use for next line prediction.')
 parser.add_argument('--grad_clip', type=float, default=None, help='Gradient clipping.')
 parser.add_argument('--lr', type=float, default=0.001, help='Base Learning Rate.')
 parser.add_argument('--dropout', type=float, default=0.5, help='Inputs Dropout Rate.')

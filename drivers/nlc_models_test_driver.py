@@ -29,11 +29,13 @@ def next_token_prediction_test(model, word_to_idx, device, model_path, args):
             encoder_input = torch.tensor(encoder_input, device=device)
             target_tensor = torch.tensor(sample[1][idx], device=device).unsqueeze(0)
 
-            _, _, decoder_outs = model(encoder_input, target_tensor, encoder_hidden)
+            _, encoder_hidden, decoder_outs = model(encoder_input, target_tensor, encoder_hidden)
 
             # Track accuracy
             total += 1
             correct += 1 if torch.equal(target_tensor, decoder_outs) else 0
+
+            encoder_hidden = encoder_hidden.detach()
 
         # Advance to the next batch
         sample, file_changed = test_dataset_batcher.get_batch()
@@ -64,12 +66,13 @@ def next_line_prediction_test(model, word_to_idx, device, model_path, args):
             encoder_input = torch.tensor(encoder_input, device=device)
             target_tensor = torch.tensor(sample[1][idx], device=device)
 
-            _, _, decoder_outs = model(encoder_input, target_tensor, encoder_hidden)
+            _, encoder_hidden, decoder_outs = model(encoder_input, target_tensor, encoder_hidden)
 
             # Track accuracy
             total += 1
             correct += 1 if torch.equal(target_tensor, decoder_outs) else 0
 
+            encoder_hidden = encoder_hidden.detach()
         # Advance to the next batch
         sample, file_changed = test_dataset_batcher.get_batch()
 

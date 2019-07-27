@@ -105,6 +105,8 @@ def validate(model, val_dataset, criterion, device, args):
             total += 1
             correct += 1 if torch.equal(target_tensor, decoder_outs) else 0
 
+            encoder_hidden = encoder_hidden.detach()
+
         validation_loss += loss / len(sample[0])
 
         # Advance to the next batch

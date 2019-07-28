@@ -1,8 +1,8 @@
 import torch
 import numpy as np
 import torch.nn as nn
-import utils.data_utils as du
 import torch.nn.functional as F
+from utils.data_utils import PAD_IDX
 
 
 class BaselineEncoder(nn.Module):
@@ -13,7 +13,7 @@ class BaselineEncoder(nn.Module):
 
         self.dropout = nn.Dropout(dropout)
         self.embeddings = nn.Embedding(vocab_size, embedding_dim)
-        self.gru = nn.GRU(embedding_dim, self.hidden_size)
+        self.gru = nn.GRU(embedding_dim, self.hidden_size, batch_first=True)
 
     def forward(self, x, hidden):
         out = self.embeddings(x)
@@ -32,7 +32,7 @@ class BaselineDecoder(nn.Module):
         self.device = device
 
         self.embedding = nn.Embedding(output_size, self.hidden_size)
-        self.gru = nn.GRU(self.hidden_size, self.hidden_size)
+        self.gru = nn.GRU(self.hidden_size, self.hidden_size, batch_first=True)
         self.out = nn.Linear(self.hidden_size, output_size)
 
     def forward(self, x, hidden):
@@ -60,10 +60,9 @@ class BaselineEncoderDecoderModel(nn.Module):
     def forward(self, encoder_input, target_tensor, encoder_hidden, criterion=None):
         loss = 0
 
-        for ei in range(encoder_input.size(0)):
-            encoder_out, encoder_hidden = self.encoder(encoder_input[ei].view(1, -1), encoder_hidden)
+        _, encoder_hidden = self.encoder(encoder_input.view(1, -1), encoder_hidden)
 
-        decoder_input = torch.tensor([du.PAD_IDX], device=self.device)
+        decoder_input = torch.tensor([PAD_IDX], device=self.device)
         decoder_hidden = encoder_hidden
 
         # Keep track of decoder outputs for accuracy calculation

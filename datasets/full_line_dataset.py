@@ -92,7 +92,7 @@ class NextLineCodeDataset(Dataset):
         :param token_list: List of tokens returned from __obtain_tokens.
         :return: ndarray.
         """
-        current_sequence = np.array([self.vocabulary.get(word, du.OOV_IDX) for word in token_list], dtype=np.long)
+        current_sequence = np.array([self.vocabulary.get(word, du.OOV_IDX) for word in token_list], dtype=np.long)[:self.seq_length]
         return current_sequence
 
 

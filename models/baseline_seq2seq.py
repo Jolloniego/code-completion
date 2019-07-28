@@ -36,7 +36,7 @@ class BaselineDecoder(nn.Module):
         self.out = nn.Linear(self.hidden_size, output_size)
 
     def forward(self, x, hidden):
-        output = self.embedding(x).view(1, 1, -1)
+        output = self.embedding(x).unsqueeze(0)
         output = F.relu(output)
         output, hidden = self.gru(output, hidden)
         output = F.log_softmax(self.out(output[0]), dim=1)
@@ -53,7 +53,6 @@ class BaselineEncoderDecoderModel(nn.Module):
         self.decoder = BaselineDecoder(vocab_size, device)
         self.device = device
         self.train_mode = True
-        self.teacher_forcing_ratio = 0.5
         self.vocab_size = vocab_size
         self.save_name = 'BaselineEncoderDecoder.pt'
 
@@ -62,23 +61,30 @@ class BaselineEncoderDecoderModel(nn.Module):
 
         _, encoder_hidden = self.encoder(encoder_input.view(1, -1), encoder_hidden)
 
-        decoder_input = torch.tensor([PAD_IDX], device=self.device)
         decoder_hidden = encoder_hidden
 
-        # Keep track of decoder outputs for accuracy calculation
-        decoder_outputs = torch.zeros(len(target_tensor), dtype=torch.long, device=self.device)
+        if self.train_mode:
+            decoder_input = torch.ones(len(target_tensor), dtype=torch.long, device=self.device)
+            decoder_input[1:] = target_tensor[:-1]
+            decoder_outputs, decoder_hidden = self.decoder(decoder_input, decoder_hidden)
 
-        for di in range(target_tensor.size(0)):
-            decoder_out, decoder_hidden = self.decoder(decoder_input, decoder_hidden)
+            loss += criterion(decoder_outputs, target_tensor)
+
+        else:
+            # Keep track of decoder outputs for accuracy calculation
+            decoder_outputs = torch.zeros(len(target_tensor), dtype=torch.long, device=self.device)
+            decoder_logits = torch.zeros((len(target_tensor), self.vocab_size), device=self.device)
+
+            decoder_input = torch.tensor([PAD_IDX], dtype=torch.long, device=self.device)
+            for di in range(target_tensor.size(0)):
+                decoder_out, decoder_hidden = self.decoder(decoder_input, decoder_hidden)
+
+                decoder_logits[di] = decoder_out.detach()
+                decoder_outputs[di] = decoder_out.data.topk(1, dim=1)[1].item()
+                decoder_input = decoder_outputs[di].unsqueeze(0)
 
             if criterion is not None:
-                loss += criterion(decoder_out, target_tensor[di].unsqueeze(0))
-
-            decoder_outputs[di] = decoder_out.data.topk(1, dim=1)[1].item()
-            if self.train_mode:
-                decoder_input = target_tensor[di]
-            else:
-                decoder_input = decoder_outputs[di]
+                loss += criterion(decoder_logits, target_tensor).item()
 
         return loss, encoder_hidden, decoder_outputs
 

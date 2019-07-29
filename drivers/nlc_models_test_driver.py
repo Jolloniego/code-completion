@@ -29,7 +29,7 @@ def next_token_prediction_test(model, word_to_idx, device, model_path, args):
             encoder_input = torch.tensor(encoder_input, device=device)
             target_tensor = torch.tensor(sample[1][idx], device=device).unsqueeze(0)
 
-            _, encoder_hidden, decoder_outs = model(encoder_input, target_tensor, encoder_hidden)
+            encoder_hidden, decoder_outs, _ = model(encoder_input, target_tensor, encoder_hidden)
 
             # Track accuracy
             total += 1
@@ -66,7 +66,7 @@ def next_line_prediction_test(model, word_to_idx, device, model_path, args):
             encoder_input = torch.tensor(encoder_input, device=device)
             target_tensor = torch.tensor(sample[1][idx], device=device)
 
-            _, encoder_hidden, decoder_outs = model(encoder_input, target_tensor, encoder_hidden)
+            encoder_hidden, decoder_outs, _ = model(encoder_input, target_tensor, encoder_hidden)
 
             # Track accuracy
             total += 1

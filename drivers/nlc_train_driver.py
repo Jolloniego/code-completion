@@ -44,8 +44,8 @@ def train(model, word_to_idx, device, args):
                 encoder_input = torch.tensor(encoder_input, device=device)
                 target_tensor = torch.tensor(sample[1][idx], device=device)
 
-                current_loss, encoder_hidden, _ = model(encoder_input, target_tensor, encoder_hidden, criterion)
-                loss += current_loss
+                encoder_hidden, _, decoder_logits = model(encoder_input, target_tensor, encoder_hidden)
+                loss += criterion(decoder_logits, target_tensor)
 
             # Track the running epoch loss
             epoch_loss += loss.item()
@@ -98,8 +98,8 @@ def validate(model, val_dataset, criterion, device, args):
             encoder_input = torch.tensor(encoder_input, device=device)
             target_tensor = torch.tensor(sample[1][idx], device=device)
 
-            current_loss, encoder_hidden, decoder_outs = model(encoder_input, target_tensor, encoder_hidden, criterion)
-            loss += current_loss
+            encoder_hidden, decoder_outs, decoder_logits = model(encoder_input, target_tensor, encoder_hidden)
+            loss += criterion(decoder_logits, target_tensor)
 
             # Track accuracy
             total += 1

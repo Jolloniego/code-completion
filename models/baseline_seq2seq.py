@@ -56,9 +56,7 @@ class BaselineEncoderDecoderModel(nn.Module):
         self.vocab_size = vocab_size
         self.save_name = 'BaselineEncoderDecoder.pt'
 
-    def forward(self, encoder_input, target_tensor, encoder_hidden, criterion=None):
-        loss = 0
-
+    def forward(self, encoder_input, target_tensor, encoder_hidden):
         _, encoder_hidden = self.encoder(encoder_input.view(1, -1), encoder_hidden)
 
         decoder_hidden = encoder_hidden
@@ -66,9 +64,8 @@ class BaselineEncoderDecoderModel(nn.Module):
         if self.train_mode:
             decoder_input = torch.ones(len(target_tensor), dtype=torch.long, device=self.device)
             decoder_input[1:] = target_tensor[:-1]
-            decoder_outputs, decoder_hidden = self.decoder(decoder_input, decoder_hidden)
-
-            loss += criterion(decoder_outputs, target_tensor)
+            decoder_logits, decoder_hidden = self.decoder(decoder_input, decoder_hidden)
+            decoder_outputs = None
 
         else:
             # Keep track of decoder outputs for accuracy calculation
@@ -83,10 +80,7 @@ class BaselineEncoderDecoderModel(nn.Module):
                 decoder_outputs[di] = decoder_out.data.topk(1, dim=1)[1].item()
                 decoder_input = decoder_outputs[di].unsqueeze(0)
 
-            if criterion is not None:
-                loss += criterion(decoder_logits, target_tensor).item()
-
-        return loss, encoder_hidden, decoder_outputs
+        return encoder_hidden, decoder_outputs, decoder_logits
 
     def train(self, mode=True):
         self.train_mode = True

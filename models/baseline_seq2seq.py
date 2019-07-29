@@ -16,9 +16,21 @@ class BaselineEncoder(nn.Module):
         self.gru = nn.GRU(embedding_dim, self.hidden_size, batch_first=True)
 
     def forward(self, x, hidden):
+        # Get the line lengths and pad them to max length in the sequence
+        x_lens = [len(t) for t in x]
+        x = nn.utils.rnn.pad_sequence(x, batch_first=True, padding_value=1)
+
+        # Get the embeddings for the padded tensor sequences
         out = self.embeddings(x)
         out = self.dropout(out)
+
+        # Pack the sequences and feed them to the recurrent unit
+        out = nn.utils.rnn.pack_padded_sequence(out, x_lens, batch_first=True, enforce_sorted=False)
         out, hidden = self.gru(out, hidden)
+
+        # Unpack the sequences into padded tensors again
+        out, _ = nn.utils.rnn.pad_packed_sequence(out, batch_first=True)
+
         return out, hidden
 
     def init_hidden(self, batch_size):

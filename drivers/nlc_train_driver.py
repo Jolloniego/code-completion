@@ -48,7 +48,6 @@ def train(model, word_to_idx, device, args):
             targets = [torch.tensor(a, device=device) for a in sample[1]]
 
             # Pad tensors to seq_length
-            inputs = nn.utils.rnn.pad_sequence(inputs, True, PAD_IDX)
             targets = nn.utils.rnn.pad_sequence(targets, True, PAD_IDX)
 
             encoder_hidden, _, decoder_logits = model(inputs, targets, encoder_hidden)

@@ -6,6 +6,7 @@ import torch
 
 from models.lstm_model import LSTMModel
 from models.baseline_model import BaselineRNNModel
+from models.attention_nt_model import AttentionLSTMModel
 from models.baseline_seq2seq import BaselineEncoderDecoderModel
 from drivers import nt_models_test_driver, nt_train_driver, nlc_train_driver, nlc_models_test_driver
 
@@ -37,7 +38,8 @@ parser.add_argument('--model', type=int, default=0,
                     help='Model to use.\n'
                          '0 = Baseline model.\n'
                          '1 = Basic LSTM model.\n'
-                         '2 = Baseline EncoderDecoder model')
+                         '2 = LSTM with Attention model\n'
+                         '3 = Baseline EncoderDecoder model')
 parser.add_argument('--vocab_path', type=str, default='data/vocab.p', help='Path to vocab.p file.')
 parser.add_argument('--cuda', type=str,
                     help='Cuda card to use, format: "cuda:int_number". Leave unused to use CPU')
@@ -52,11 +54,11 @@ parser.add_argument('--lr', type=float, default=0.001, help='Base Learning Rate.
 parser.add_argument('--dropout', type=float, default=0.5, help='Inputs Dropout Rate.')
 parser.add_argument('--embedding_dim', type=int, default=300, help='Embedding dimension.')
 
-
 args = parser.parse_args()
 
 word_to_idx = pickle.load(open(args.vocab_path, 'rb'))
 device = torch.device(args.cuda if (args.cuda is not None and torch.cuda.is_available()) else 'cpu')
+
 
 # Not needed for now.
 # idx_to_word = {key: word for key, word in enumerate(word_to_idx)}
@@ -73,12 +75,16 @@ def get_model(model_id):
         elif model_id == 1:
             return LSTMModel(vocab_size=len(word_to_idx), device=device,
                              embedding_dim=args.embedding_dim, dropout=args.dropout).to(device)
+        elif model_id == 2:
+            return AttentionLSTMModel(vocab_size=len(word_to_idx), device=device,
+                                      embedding_dim=args.embedding_dim, dropout=args.dropout).to(device)
         else:
             raise ValueError("Model not known or not applicable to selected mode. Available Models:\n"
                              "0 for BaselineRNNModel.\n"
-                             "1 for BasicLSTMModel.")
+                             "1 for BasicLSTMModel.\n"
+                             "2 for LSTM with Attention model.")
     else:
-        if model_id == 2:
+        if model_id == 3:
             return BaselineEncoderDecoderModel(len(word_to_idx), embedding_dim=300, dropout=args.dropout,
                                                device=device).to(device)
         else:

@@ -29,12 +29,12 @@ parser.add_argument('--val_files', type=str, default='data/validation.txt',
 parser.add_argument('--test_files', type=str, default='data/test.txt',
                     help='Path to file containing the test data split.')
 # Run configurations
-parser.add_argument('--mode', type=int, default=0,
+parser.add_argument('--mode', type=int, default=1,
                     help='0 - Train model on next-token prediction data.\n'
                          '1 - Train model on next-line prediction data.\n'
                          '2 - Test models trained on next-token tasks.\n'
                          '3 - Test models trained on next-line prediction.\n')
-parser.add_argument('--model', type=int, default=0,
+parser.add_argument('--model', type=int, default=3,
                     help='Model to use.\n'
                          '0 = Baseline model.\n'
                          '1 = Basic LSTM model.\n'
@@ -85,8 +85,8 @@ def get_model(model_id):
                              "2 for LSTM with Attention model.")
     else:
         if model_id == 3:
-            return BaselineEncoderDecoderModel(len(word_to_idx), embedding_dim=300, dropout=args.dropout,
-                                               device=device).to(device)
+            return BaselineEncoderDecoderModel(len(word_to_idx), seq_length=args.seq_length, embedding_dim=300,
+                                               dropout=args.dropout, device=device).to(device)
         else:
             raise ValueError("Model not known or not applicable to selected mode. Available Models:\n"
                              "2 for BaselineEncoderDecoderModel.")

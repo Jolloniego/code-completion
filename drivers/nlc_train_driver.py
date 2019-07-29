@@ -4,6 +4,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 
+from utils.data_utils import PAD_IDX
 from datasets.full_line_dataset import NextLineCodeDataset, NextLineCodeDatasetBatcher
 
 
@@ -17,7 +18,7 @@ def train(model, word_to_idx, device, args):
     print("The model {}, has {} trainable parameters.".format(model.save_name, model.summary()))
     encoder_optimiser = optim.Adam(model.encoder.parameters(), lr=args.lr)
     decoder_optimiser = optim.Adam(model.decoder.parameters(), lr=args.lr)
-    criterion = nn.NLLLoss().to(device)
+    criterion = nn.NLLLoss(ignore_index=PAD_IDX).to(device)
 
     train_start = time.time()
 
@@ -35,20 +36,26 @@ def train(model, word_to_idx, device, args):
             decoder_optimiser.zero_grad()
 
             if file_changed:
-                encoder_hidden = model.encoder.init_hidden()
+                encoder_hidden = model.encoder.init_hidden(args.batch_size)
+
+            if len(sample[0]) != args.batch_size:
+                encoder_hidden = encoder_hidden[:, :len(sample[0]), :]
 
             loss = 0
 
-            for idx, encoder_input in enumerate(sample[0]):
+            # Convert inputs to tensors
+            inputs = [torch.tensor(a, device=device) for a in sample[0]]
+            targets = [torch.tensor(a, device=device) for a in sample[1]]
 
-                encoder_input = torch.tensor(encoder_input, device=device)
-                target_tensor = torch.tensor(sample[1][idx], device=device)
+            # Pad tensors to seq_length
+            inputs = nn.utils.rnn.pad_sequence(inputs, True, PAD_IDX)
+            targets = nn.utils.rnn.pad_sequence(targets, True, PAD_IDX)
 
-                encoder_hidden, _, decoder_logits = model(encoder_input, target_tensor, encoder_hidden)
-                loss += criterion(decoder_logits, target_tensor)
+            encoder_hidden, _, decoder_logits = model(inputs, targets, encoder_hidden)
+            loss += criterion(decoder_logits.transpose(1, 2), targets)
 
             # Track the running epoch loss
-            epoch_loss += loss.item()
+            epoch_loss += loss.item() / len(sample[0])
 
             # Backprop the loss and update params, use gradient clipping if specified
             loss.backward()
@@ -91,23 +98,32 @@ def validate(model, val_dataset, criterion, device, args):
     while sample is not None:
 
         if file_changed:
-            encoder_hidden = model.encoder.init_hidden()
+            encoder_hidden = model.encoder.init_hidden(len(sample[0]))
+
+        if len(sample[0]) != args.batch_size:
+            encoder_hidden = encoder_hidden[:, :len(sample[0]), :]
 
         loss = 0
-        for idx, encoder_input in enumerate(sample[0]):
-            encoder_input = torch.tensor(encoder_input, device=device)
-            target_tensor = torch.tensor(sample[1][idx], device=device)
 
-            encoder_hidden, decoder_outs, decoder_logits = model(encoder_input, target_tensor, encoder_hidden)
-            loss += criterion(decoder_logits, target_tensor)
+        # Convert inputs to tensors
+        inputs = [torch.tensor(a, device=device) for a in sample[0]]
+        targets = [torch.tensor(a, device=device) for a in sample[1]]
 
-            # Track accuracy
-            total += 1
-            correct += 1 if torch.equal(target_tensor, decoder_outs) else 0
+        # Pad tensors to seq_length
+        inputs = nn.utils.rnn.pad_sequence(inputs, True, PAD_IDX)
 
-            encoder_hidden = encoder_hidden.detach()
+        encoder_hidden, decoder_outs, decoder_logits = model(inputs, targets, encoder_hidden)
 
-        validation_loss += loss / len(sample[0])
+        # Track loss and accuracy
+        targets = nn.utils.rnn.pad_sequence(targets, True, PAD_IDX)
+        loss += criterion(decoder_logits[:, :targets.size(1),:].transpose(1, 2), targets)
+        total += len(targets)
+        for idx in range(len(targets)):
+            correct += 1 if torch.equal(decoder_outs[idx], targets[idx]) else 0
+
+        encoder_hidden = encoder_hidden.detach()
+
+        validation_loss += loss.item() / len(sample[0])
 
         # Advance to the next batch
         sample, file_changed = val_dataset_batcher.get_batch()

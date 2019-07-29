@@ -21,8 +21,8 @@ class BaselineEncoder(nn.Module):
         out, hidden = self.gru(out, hidden)
         return out, hidden
 
-    def init_hidden(self):
-        return torch.zeros(1, 1, self.hidden_size, device=self.device)
+    def init_hidden(self, batch_size):
+        return torch.zeros(1, batch_size, self.hidden_size, device=self.device)
 
 
 class BaselineDecoder(nn.Module):
@@ -36,49 +36,60 @@ class BaselineDecoder(nn.Module):
         self.out = nn.Linear(self.hidden_size, output_size)
 
     def forward(self, x, hidden):
-        output = self.embedding(x).unsqueeze(0)
+        output = self.embedding(x)
         output = F.relu(output)
-        output, hidden = self.gru(output, hidden)
-        output = F.log_softmax(self.out(output[0]), dim=1)
-        return output, hidden
 
-    def init_hidden(self):
-        return torch.zeros(1, 1, self.hidden_size, device=self.device)
+        if self.training:
+            output, hidden = self.gru(output, hidden)
+        else:
+            output, hidden = self.gru(output.view(1, 1, -1), hidden)
+
+        output = F.log_softmax(self.out(output), dim=2)
+
+        return output, hidden
 
 
 class BaselineEncoderDecoderModel(nn.Module):
-    def __init__(self, vocab_size, embedding_dim, dropout, device):
+    def __init__(self, vocab_size, embedding_dim, seq_length, dropout, device):
         super(BaselineEncoderDecoderModel, self).__init__()
         self.encoder = BaselineEncoder(vocab_size, embedding_dim, dropout, device)
         self.decoder = BaselineDecoder(vocab_size, device)
         self.device = device
         self.train_mode = True
         self.vocab_size = vocab_size
+        self.seq_length = seq_length
         self.save_name = 'BaselineEncoderDecoder.pt'
 
-    def forward(self, encoder_input, target_tensor, encoder_hidden):
-        _, encoder_hidden = self.encoder(encoder_input.view(1, -1), encoder_hidden)
+    def forward(self, input_batch, targets, encoder_hidden):
+        _, encoder_hidden = self.encoder(input_batch, encoder_hidden)
 
         decoder_hidden = encoder_hidden
 
         if self.train_mode:
-            decoder_input = torch.ones(len(target_tensor), dtype=torch.long, device=self.device)
-            decoder_input[1:] = target_tensor[:-1]
+            first_input = torch.ones((len(targets), 1), dtype=torch.long, device=self.device)
+            decoder_input = torch.cat((first_input, targets[:, :-1]), dim=1)
+
             decoder_logits, decoder_hidden = self.decoder(decoder_input, decoder_hidden)
             decoder_outputs = None
 
         else:
             # Keep track of decoder outputs for accuracy calculation
-            decoder_outputs = torch.zeros(len(target_tensor), dtype=torch.long, device=self.device)
-            decoder_logits = torch.zeros((len(target_tensor), self.vocab_size), device=self.device)
+            decoder_outputs = torch.ones((len(targets), self.seq_length), dtype=torch.long, device=self.device)
+            decoder_logits = torch.zeros((len(targets), self.seq_length, self.vocab_size), device=self.device)
 
             decoder_input = torch.tensor([PAD_IDX], dtype=torch.long, device=self.device)
-            for di in range(target_tensor.size(0)):
-                decoder_out, decoder_hidden = self.decoder(decoder_input, decoder_hidden)
+            for di in range(len(targets)):
+                current_hidden = decoder_hidden[:, di, :].unsqueeze(0)
 
-                decoder_logits[di] = decoder_out.detach()
-                decoder_outputs[di] = decoder_out.data.topk(1, dim=1)[1].item()
-                decoder_input = decoder_outputs[di].unsqueeze(0)
+                for idx in range(len(targets[di])):
+                    decoder_out, current_hidden = self.decoder(decoder_input, current_hidden)
+
+                    decoder_logits[di, idx] = decoder_out.detach()
+                    decoder_out = decoder_out.data.topk(1)[1]
+                    decoder_outputs[di, idx] = decoder_out
+
+                    # Feed its previous output as next input
+                    decoder_input = decoder_out
 
         return encoder_hidden, decoder_outputs, decoder_logits
 

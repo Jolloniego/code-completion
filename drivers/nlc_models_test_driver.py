@@ -25,17 +25,17 @@ def next_token_prediction_test(model, word_to_idx, device, model_path, args):
         if file_changed:
             encoder_hidden = model.encoder.init_hidden()
 
-        for idx, encoder_input in enumerate(sample[0]):
-            encoder_input = torch.tensor(encoder_input, device=device)
-            target_tensor = torch.tensor(sample[1][idx], device=device).unsqueeze(0)
+        encoder_input = [torch.tensor(t, device=device) for t in sample[0]]
+        target_tensor = [torch.tensor(t, device=device).unsqueeze(0) for t in sample[1]]
 
-            encoder_hidden, decoder_outs, _ = model(encoder_input, target_tensor, encoder_hidden)
+        encoder_hidden, decoder_logits = model(encoder_input, target_tensor, encoder_hidden)
 
-            # Track accuracy
-            total += 1
-            correct += 1 if torch.equal(target_tensor, decoder_outs) else 0
+        # Track accuracy
+        total += len(sample[0])
+        for idx in range(len(sample[0])):
+            correct += 1 if torch.equal(target_tensor[idx], decoder_logits[idx].data.topk(1)[1].squeeze(0)) else 0
 
-            encoder_hidden = encoder_hidden.detach()
+        encoder_hidden = encoder_hidden.detach()
 
         # Advance to the next batch
         sample, file_changed = test_dataset_batcher.get_batch()
@@ -62,17 +62,19 @@ def next_line_prediction_test(model, word_to_idx, device, model_path, args):
         if file_changed:
             encoder_hidden = model.encoder.init_hidden()
 
-        for idx, encoder_input in enumerate(sample[0]):
-            encoder_input = torch.tensor(encoder_input, device=device)
-            target_tensor = torch.tensor(sample[1][idx], device=device)
+        # Convert inputs to tensors
+        inputs = [torch.tensor(a, device=device) for a in sample[0]]
+        targets = [torch.tensor(a, device=device) for a in sample[1]]
 
-            encoder_hidden, decoder_outs, _ = model(encoder_input, target_tensor, encoder_hidden)
+        encoder_hidden, decoder_logits = model(inputs, targets, encoder_hidden)
 
-            # Track accuracy
-            total += 1
-            correct += 1 if torch.equal(target_tensor, decoder_outs) else 0
+        # Track loss and accuracy
+        total += len(targets)
+        for idx in range(len(targets)):
+            correct += 1 if torch.equal(decoder_logits[idx].topk(1)[1].flatten(), targets[idx]) else 0
 
-            encoder_hidden = encoder_hidden.detach()
+        encoder_hidden = encoder_hidden.detach()
+
         # Advance to the next batch
         sample, file_changed = test_dataset_batcher.get_batch()
 

@@ -16,25 +16,13 @@ class BaselineEncoder(nn.Module):
         self.gru = nn.GRU(embedding_dim, self.hidden_size, batch_first=True)
 
     def forward(self, x, hidden):
-        # Get the line lengths and pad them to max length in the sequence
-        x_lens = [len(t) for t in x]
-        x = nn.utils.rnn.pad_sequence(x, batch_first=True, padding_value=1)
-
-        # Get the embeddings for the padded tensor sequences
         out = self.embeddings(x)
         out = self.dropout(out)
-
-        # Pack the sequences and feed them to the recurrent unit
-        out = nn.utils.rnn.pack_padded_sequence(out, x_lens, batch_first=True, enforce_sorted=False)
         out, hidden = self.gru(out, hidden)
-
-        # Unpack the sequences into padded tensors again
-        out, _ = nn.utils.rnn.pad_packed_sequence(out, batch_first=True)
-
         return out, hidden
 
-    def init_hidden(self, batch_size):
-        return torch.zeros(1, batch_size, self.hidden_size, device=self.device)
+    def init_hidden(self):
+        return torch.zeros(1, 1, self.hidden_size, device=self.device)
 
 
 class BaselineDecoder(nn.Module):
@@ -73,37 +61,42 @@ class BaselineEncoderDecoderModel(nn.Module):
         self.save_name = 'BaselineEncoderDecoder.pt'
 
     def forward(self, input_batch, targets, encoder_hidden):
-        _, encoder_hidden = self.encoder(input_batch, encoder_hidden)
-
-        decoder_hidden = encoder_hidden
 
         if self.train_mode:
-            first_input = torch.ones((len(targets), 1), dtype=torch.long, device=self.device)
-            decoder_input = torch.cat((first_input, targets[:, :-1]), dim=1)
+            decoder_logits = []
+            first_input = torch.tensor([PAD_IDX], dtype=torch.long, device=self.device)
 
-            decoder_logits, decoder_hidden = self.decoder(decoder_input, decoder_hidden)
-            decoder_outputs = None
+            for idx in range(len(input_batch)):
+                _, encoder_hidden = self.encoder(input_batch[idx].unsqueeze(0), encoder_hidden)
+
+                decoder_hidden = encoder_hidden
+
+                decoder_input = torch.cat((first_input, targets[idx][:-1]), dim=0)
+                current_logits, decoder_hidden = self.decoder(decoder_input.unsqueeze(0), decoder_hidden)
+                decoder_logits.append(current_logits)
 
         else:
-            # Keep track of decoder outputs for accuracy calculation
-            decoder_outputs = torch.ones((len(targets), self.seq_length), dtype=torch.long, device=self.device)
-            decoder_logits = torch.zeros((len(targets), self.seq_length, self.vocab_size), device=self.device)
+           with torch.no_grad():
+                decoder_logits = []
+                first_input = torch.tensor([PAD_IDX], dtype=torch.long, device=self.device)
 
-            decoder_input = torch.tensor([PAD_IDX], dtype=torch.long, device=self.device)
-            for di in range(len(targets)):
-                current_hidden = decoder_hidden[:, di, :].unsqueeze(0)
+                for idx in range(len(input_batch)):
+                    _, encoder_hidden = self.encoder(input_batch[idx].unsqueeze(0), encoder_hidden)
 
-                for idx in range(len(targets[di])):
-                    decoder_out, current_hidden = self.decoder(decoder_input, current_hidden)
+                    decoder_hidden = encoder_hidden
 
-                    decoder_logits[di, idx] = decoder_out.detach()
-                    decoder_out = decoder_out.data.topk(1)[1]
-                    decoder_outputs[di, idx] = decoder_out
+                    decoder_input = first_input
+                    current_logits = torch.zeros((len(targets[idx]), self.vocab_size), device=self.device)
+                    for t_idx in range(len(targets[idx])):
+                        logits, decoder_hidden = self.decoder(decoder_input.unsqueeze(0), decoder_hidden)
+                        current_logits[t_idx] = logits
 
-                    # Feed its previous output as next input
-                    decoder_input = decoder_out
+                        # Feed its previous output as next input
+                        decoder_input = logits.data.topk(1)[1].squeeze()
 
-        return encoder_hidden, decoder_outputs, decoder_logits
+                    decoder_logits.append(current_logits)
+
+        return encoder_hidden, decoder_logits
 
     def train(self, mode=True):
         self.train_mode = True

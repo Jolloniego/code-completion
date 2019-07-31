@@ -60,6 +60,9 @@ def train(model, word_to_idx, device, args):
             decoder_optimiser.step()
             encoder_hidden = encoder_hidden.detach()
 
+            # Manually delete unused tensors to free memory
+            del loss, targets, inputs
+
             # Get the next batch
             sample, file_changed = train_dataset_batcher.get_batch()
 
@@ -111,6 +114,9 @@ def validate(model, val_dataset, criterion, device, args):
         encoder_hidden = encoder_hidden.detach()
 
         validation_loss += loss.item() / len(sample[0])
+
+        # Manually delete unused tensors to free memory
+        del loss, targets, inputs
 
         # Advance to the next batch
         sample, file_changed = val_dataset_batcher.get_batch()

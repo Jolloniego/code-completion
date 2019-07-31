@@ -9,7 +9,7 @@ class BaselineEncoder(nn.Module):
     def __init__(self, vocab_size, embedding_dim, dropout, device):
         super(BaselineEncoder, self).__init__()
         self.device = device
-        self.hidden_size = 500
+        self.hidden_size = 128
 
         self.dropout = nn.Dropout(dropout)
         self.embeddings = nn.Embedding(vocab_size, embedding_dim)
@@ -28,7 +28,7 @@ class BaselineEncoder(nn.Module):
 class BaselineDecoder(nn.Module):
     def __init__(self, output_size, device):
         super(BaselineDecoder, self).__init__()
-        self.hidden_size = 500
+        self.hidden_size = 128
         self.device = device
 
         self.embedding = nn.Embedding(output_size, self.hidden_size)

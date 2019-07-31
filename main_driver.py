@@ -59,7 +59,6 @@ args = parser.parse_args()
 word_to_idx = pickle.load(open(args.vocab_path, 'rb'))
 device = torch.device(args.cuda if (args.cuda is not None and torch.cuda.is_available()) else 'cpu')
 
-
 # Not needed for now.
 # idx_to_word = {key: word for key, word in enumerate(word_to_idx)}
 
@@ -89,7 +88,7 @@ def get_model(model_id):
                                                dropout=args.dropout, device=device).to(device)
         else:
             raise ValueError("Model not known or not applicable to selected mode. Available Models:\n"
-                             "2 for BaselineEncoderDecoderModel.")
+                             "3 for BaselineEncoderDecoderModel.")
 
 
 def train_model_next_token(model):

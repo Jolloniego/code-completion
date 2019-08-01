@@ -21,8 +21,8 @@ class BaselineEncoder(nn.Module):
         out, hidden = self.gru(out, hidden)
         return out, hidden
 
-    def init_hidden(self):
-        return torch.zeros(1, 1, self.hidden_size, device=self.device)
+    def init_hidden(self, batch_size):
+        return torch.zeros(1, batch_size, self.hidden_size, device=self.device)
 
 
 class BaselineDecoder(nn.Module):
@@ -63,40 +63,38 @@ class BaselineEncoderDecoderModel(nn.Module):
     def forward(self, input_batch, targets, encoder_hidden):
 
         if self.train_mode:
-            decoder_logits = []
-            first_input = torch.tensor([PAD_IDX], dtype=torch.long, device=self.device)
+            _, encoder_hidden = self.encoder(input_batch, encoder_hidden)
 
-            for idx in range(len(input_batch)):
-                _, encoder_hidden = self.encoder(input_batch[idx].unsqueeze(0), encoder_hidden)
+            last_encoder_hidden = encoder_hidden.data
+            decoder_hidden = encoder_hidden
 
-                decoder_hidden = encoder_hidden
-
-                decoder_input = torch.cat((first_input, targets[idx][:-1]), dim=0)
-                current_logits, decoder_hidden = self.decoder(decoder_input.unsqueeze(0), decoder_hidden)
-                decoder_logits.append(current_logits)
+            first_input = torch.tensor([PAD_IDX], dtype=torch.long, device=self.device).repeat(len(input_batch)).unsqueeze(1)
+            decoder_input = torch.cat((first_input, targets), dim=1)[:, :-1]
+            decoder_logits, decoder_hidden = self.decoder(decoder_input, decoder_hidden)
 
         else:
            with torch.no_grad():
-                decoder_logits = []
                 first_input = torch.tensor([PAD_IDX], dtype=torch.long, device=self.device)
 
-                for idx in range(len(input_batch)):
-                    _, encoder_hidden = self.encoder(input_batch[idx].unsqueeze(0), encoder_hidden)
+                _, encoder_hidden = self.encoder(input_batch, encoder_hidden)
 
-                    decoder_hidden = encoder_hidden
+                last_encoder_hidden = encoder_hidden.data
+                decoder_hidden = encoder_hidden
 
-                    decoder_input = first_input
-                    current_logits = torch.zeros((len(targets[idx]), self.vocab_size), device=self.device)
+                decoder_logits = []
+                decoder_input = first_input
+                for idx in range(len(targets)):
+                    current_logits = []
+                    current_hidden = decoder_hidden[:, idx].unsqueeze(0)
                     for t_idx in range(len(targets[idx])):
-                        logits, decoder_hidden = self.decoder(decoder_input.unsqueeze(0), decoder_hidden)
-                        current_logits[t_idx] = logits
-
+                        logits, current_hidden = self.decoder(decoder_input, current_hidden)
+                        current_logits.append(logits.data)
                         # Feed its previous output as next input
-                        decoder_input = logits.data.topk(1)[1].squeeze()
+                        decoder_input = logits.data.topk(1)[1].view(1)
 
                     decoder_logits.append(current_logits)
 
-        return encoder_hidden, decoder_logits
+        return last_encoder_hidden, decoder_logits
 
     def train(self, mode=True):
         self.train_mode = True

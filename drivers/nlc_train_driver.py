@@ -35,33 +35,32 @@ def train(model, word_to_idx, device, args):
             decoder_optimiser.zero_grad()
 
             if file_changed:
-                encoder_hidden = model.encoder.init_hidden()
+                encoder_hidden = model.encoder.init_hidden(len(sample[0]))
 
-            loss = 0
+            if len(sample[0]) != args.batch_size:
+                encoder_hidden = encoder_hidden[:, :len(sample[0]), :]
 
             # Convert inputs to tensors
             inputs = [torch.tensor(a, device=device) for a in sample[0]]
             targets = [torch.tensor(a, device=device) for a in sample[1]]
+            # Pad into tensors.
+            inputs = nn.utils.rnn.pad_sequence(inputs, True, 1)
+            targets = nn.utils.rnn.pad_sequence(targets, True, 1)
 
             encoder_hidden, decoder_logits = model(inputs, targets, encoder_hidden)
 
-            for idx in range(len(decoder_logits)):
-                loss += criterion(decoder_logits[idx].squeeze(), targets[idx])
+            batch_loss = criterion(decoder_logits.transpose(2, 1), targets)
 
             # Track the running epoch loss
-            epoch_loss += loss.item() / len(sample[0])
+            epoch_loss += batch_loss.item() / len(sample[0])
 
             # Backprop the loss and update params, use gradient clipping if specified
-            loss.backward()
+            batch_loss.backward()
             if args.grad_clip is not None and args.grad_clip > 0:
                 torch.nn.utils.clip_grad_norm_(model.parameters(), args.grad_clip)
 
             encoder_optimiser.step()
             decoder_optimiser.step()
-            encoder_hidden = encoder_hidden.detach()
-
-            # Manually delete unused tensors to free memory
-            del loss, targets, inputs
 
             # Get the next batch
             sample, file_changed = train_dataset_batcher.get_batch()
@@ -95,7 +94,10 @@ def validate(model, val_dataset, criterion, device, args):
     while sample is not None:
 
         if file_changed:
-            encoder_hidden = model.encoder.init_hidden()
+            encoder_hidden = model.encoder.init_hidden(len(sample[0]))
+
+        if len(sample[0]) != args.batch_size:
+            encoder_hidden = encoder_hidden[:, :len(sample[0]), :]
 
         loss = 0
 
@@ -103,20 +105,23 @@ def validate(model, val_dataset, criterion, device, args):
         inputs = [torch.tensor(a, device=device) for a in sample[0]]
         targets = [torch.tensor(a, device=device) for a in sample[1]]
 
+        # Pad into single tensor
+        inputs = nn.utils.rnn.pad_sequence(inputs, True, 1)
+
         encoder_hidden, decoder_logits = model(inputs, targets, encoder_hidden)
+
+        # Convert logits to list of tensors
+        decoder_logits = [torch.cat(item, dim=1) for item in decoder_logits]
 
         # Track loss and accuracy
         total += len(targets)
         for idx in range(len(targets)):
-            loss += criterion(decoder_logits[idx], targets[idx])
+            loss += criterion(decoder_logits[idx].transpose(2, 1), targets[idx].unsqueeze(0))
             correct += 1 if torch.equal(decoder_logits[idx].topk(1)[1].flatten(), targets[idx]) else 0
 
         encoder_hidden = encoder_hidden.detach()
 
         validation_loss += loss.item() / len(sample[0])
-
-        # Manually delete unused tensors to free memory
-        del loss, targets, inputs
 
         # Advance to the next batch
         sample, file_changed = val_dataset_batcher.get_batch()

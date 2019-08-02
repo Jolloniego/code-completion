@@ -1,4 +1,5 @@
 import os
+import torch
 import tokenize
 
 import numpy as np
@@ -42,7 +43,7 @@ class NextLineCodeDataset(Dataset):
         except IndexError:
             # Process each file only once.
             filename = self.code_files[idx]
-            sample_tokens = [line for line in self.__obtain_tokens(filename) if line != []]
+            sample_tokens = [torch.tensor(line) for line in self.__obtain_tokens(filename) if line != []]
 
             if len(sample_tokens) == 0:
                 self.loaded_files.append(([], []))

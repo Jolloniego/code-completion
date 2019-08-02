@@ -40,12 +40,9 @@ def train(model, word_to_idx, device, args):
             if len(sample[0]) != args.batch_size:
                 encoder_hidden = encoder_hidden[:, :len(sample[0]), :]
 
-            # Convert inputs to tensors
-            inputs = [torch.tensor(a, device=device) for a in sample[0]]
-            targets = [torch.tensor(a, device=device) for a in sample[1]]
             # Pad into tensors.
-            inputs = nn.utils.rnn.pad_sequence(inputs, True, PAD_IDX)
-            targets = nn.utils.rnn.pad_sequence(targets, True, PAD_IDX)
+            inputs = nn.utils.rnn.pad_sequence(sample[0], True, PAD_IDX).to(device)
+            targets = nn.utils.rnn.pad_sequence(sample[1], True, PAD_IDX).to(device)
 
             encoder_hidden, decoder_logits = model(inputs, targets, encoder_hidden)
 
@@ -99,25 +96,27 @@ def validate(model, val_dataset, criterion, device, args):
         if len(sample[0]) != args.batch_size:
             encoder_hidden = encoder_hidden[:, :len(sample[0]), :]
 
-        loss = 0
-
-        # Convert inputs to tensors
-        inputs = [torch.tensor(a, device=device) for a in sample[0]]
-        targets = [torch.tensor(a, device=device) for a in sample[1]]
+        targets = sample[1]
 
         # Pad into single tensor
-        inputs = nn.utils.rnn.pad_sequence(inputs, True, PAD_IDX)
+        inputs = nn.utils.rnn.pad_sequence(sample[0], True, PAD_IDX).to(device)
 
         encoder_hidden, decoder_logits = model(inputs, targets, encoder_hidden)
 
-        # Convert logits to list of tensors
-        decoder_logits = [torch.cat(item, dim=1) for item in decoder_logits]
+        # Pad targets and free some memory
+        del inputs
+        padded_targets = nn.utils.rnn.pad_sequence(targets, True, PAD_IDX).to(device)
 
         # Track loss and accuracy
+        loss = criterion(decoder_logits.transpose(2, 1)[:, :, :padded_targets.size(1)], padded_targets)
+
+        # Convert logits into token predictions and free memory
+        token_predictions = decoder_logits.topk(1)[1].squeeze()
+        del decoder_logits
+
         total += len(targets)
         for idx in range(len(targets)):
-            loss += criterion(decoder_logits[idx].transpose(2, 1), targets[idx].unsqueeze(0))
-            correct += 1 if torch.equal(decoder_logits[idx].topk(1)[1].flatten(), targets[idx]) else 0
+            correct += 1 if torch.equal(token_predictions[idx][:len(targets[idx])], targets[idx]) else 0
 
         encoder_hidden = encoder_hidden.detach()
 

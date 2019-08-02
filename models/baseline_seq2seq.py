@@ -82,18 +82,15 @@ class BaselineEncoderDecoderModel(nn.Module):
                 last_encoder_hidden = encoder_hidden.data
                 decoder_hidden = encoder_hidden
 
-                decoder_logits = []
-                decoder_input = first_input
+                decoder_logits = torch.zeros((len(targets), self.seq_length, self.vocab_size), dtype=torch.float32)
                 for idx in range(len(targets)):
-                    current_logits = []
+                    decoder_input = first_input
                     current_hidden = decoder_hidden[:, idx].unsqueeze(0)
                     for t_idx in range(len(targets[idx])):
                         logits, current_hidden = self.decoder(decoder_input, current_hidden)
-                        current_logits.append(logits.data)
+                        decoder_logits[idx, t_idx] = logits.data
                         # Feed its previous output as next input
                         decoder_input = logits.data.topk(1)[1].view(1)
-
-                    decoder_logits.append(current_logits)
 
         return last_encoder_hidden, decoder_logits
 

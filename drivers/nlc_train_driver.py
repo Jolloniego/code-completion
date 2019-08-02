@@ -1,3 +1,4 @@
+import gc
 import time
 
 import torch
@@ -61,6 +62,10 @@ def train(model, word_to_idx, device, args):
 
             # Get the next batch
             sample, file_changed = train_dataset_batcher.get_batch()
+
+        # Free memory
+        del encoder_hidden, decoder_logits, batch_loss, inputs, targets
+        gc.collect()
 
         print("Epoch {} | Loss {:.10f} | Time taken {:.2f} seconds"
               .format(epoch, epoch_loss, time.time() - epoch_start))

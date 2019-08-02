@@ -3,6 +3,7 @@ import time
 import torch
 import torch.nn as nn
 
+from utils.data_utils import PAD_IDX
 from datasets.full_line_dataset import NextLineCodeDataset, NextLineCodeDatasetBatcher
 from datasets.next_token_dataset import NextTokenCodeDataset, NextTokenCodeDatasetBatcher
 
@@ -23,17 +24,19 @@ def next_token_prediction_test(model, word_to_idx, device, model_path, args):
     sample, file_changed = test_dataset_batcher.get_batch()
     while sample is not None:
         if file_changed:
-            encoder_hidden = model.encoder.init_hidden()
+            encoder_hidden = model.encoder.init_hidden(len(sample[0]))
 
-        encoder_input = [torch.tensor(t, device=device) for t in sample[0]]
-        target_tensor = [torch.tensor(t, device=device).unsqueeze(0) for t in sample[1]]
+        encoder_input = torch.tensor(sample[0], device=device)
+        target_tensor = torch.tensor(sample[1], device=device).unsqueeze(1)
 
         encoder_hidden, decoder_logits = model(encoder_input, target_tensor, encoder_hidden)
 
+        predictions = decoder_logits[:, :1, :].topk(1)[1].squeeze()
+        del decoder_logits
+
         # Track accuracy
         total += len(sample[0])
-        for idx in range(len(sample[0])):
-            correct += 1 if torch.equal(target_tensor[idx], decoder_logits[idx].data.topk(1)[1].squeeze(0)) else 0
+        correct += torch.sum(torch.eq(predictions, target_tensor.squeeze())).item()
 
         encoder_hidden = encoder_hidden.detach()
 
@@ -60,18 +63,28 @@ def next_line_prediction_test(model, word_to_idx, device, model_path, args):
     while sample is not None:
 
         if file_changed:
-            encoder_hidden = model.encoder.init_hidden()
+            encoder_hidden = model.encoder.init_hidden(len(sample[0]))
 
-        # Convert inputs to tensors
-        inputs = [torch.tensor(a, device=device) for a in sample[0]]
-        targets = [torch.tensor(a, device=device) for a in sample[1]]
+        if len(sample[0]) != args.batch_size:
+            encoder_hidden = encoder_hidden[:, :len(sample[0]), :]
+
+        targets = sample[1]
+
+        # Pad into single tensor
+        inputs = nn.utils.rnn.pad_sequence(sample[0], True, PAD_IDX).to(device)
 
         encoder_hidden, decoder_logits = model(inputs, targets, encoder_hidden)
 
-        # Track loss and accuracy
+        # Free some memory
+        del inputs
+
+        # Convert logits into token predictions and free memory
+        token_predictions = decoder_logits.topk(1)[1].squeeze()
+        del decoder_logits
+
         total += len(targets)
         for idx in range(len(targets)):
-            correct += 1 if torch.equal(decoder_logits[idx].topk(1)[1].flatten(), targets[idx]) else 0
+            correct += 1 if torch.equal(token_predictions[idx][:len(targets[idx])], targets[idx]) else 0
 
         encoder_hidden = encoder_hidden.detach()
 

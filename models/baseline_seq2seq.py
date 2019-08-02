@@ -82,7 +82,8 @@ class BaselineEncoderDecoderModel(nn.Module):
                 last_encoder_hidden = encoder_hidden.data
                 decoder_hidden = encoder_hidden
 
-                decoder_logits = torch.zeros((len(targets), self.seq_length, self.vocab_size), dtype=torch.float32)
+                decoder_logits = torch.zeros((len(targets), self.seq_length, self.vocab_size),
+                                             dtype=torch.float32).to(self.device)
                 for idx in range(len(targets)):
                     decoder_input = first_input
                     current_hidden = decoder_hidden[:, idx].unsqueeze(0)

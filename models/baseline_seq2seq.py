@@ -68,12 +68,13 @@ class BaselineEncoderDecoderModel(nn.Module):
             last_encoder_hidden = encoder_hidden.data
             decoder_hidden = encoder_hidden
 
-            first_input = torch.tensor([PAD_IDX], dtype=torch.long, device=self.device).repeat(len(input_batch)).unsqueeze(1)
+            first_input = torch.tensor([PAD_IDX], dtype=torch.long, device=self.device).repeat(
+                len(input_batch)).unsqueeze(1)
             decoder_input = torch.cat((first_input, targets), dim=1)[:, :-1]
             decoder_logits, decoder_hidden = self.decoder(decoder_input, decoder_hidden)
 
         else:
-           with torch.no_grad():
+            with torch.no_grad():
                 first_input = torch.tensor([PAD_IDX], dtype=torch.long, device=self.device)
 
                 _, encoder_hidden = self.encoder(input_batch, encoder_hidden)

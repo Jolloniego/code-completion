@@ -44,8 +44,8 @@ def train(model, word_to_idx, device, args):
             inputs = [torch.tensor(a, device=device) for a in sample[0]]
             targets = [torch.tensor(a, device=device) for a in sample[1]]
             # Pad into tensors.
-            inputs = nn.utils.rnn.pad_sequence(inputs, True, 1)
-            targets = nn.utils.rnn.pad_sequence(targets, True, 1)
+            inputs = nn.utils.rnn.pad_sequence(inputs, True, PAD_IDX)
+            targets = nn.utils.rnn.pad_sequence(targets, True, PAD_IDX)
 
             encoder_hidden, decoder_logits = model(inputs, targets, encoder_hidden)
 
@@ -106,7 +106,7 @@ def validate(model, val_dataset, criterion, device, args):
         targets = [torch.tensor(a, device=device) for a in sample[1]]
 
         # Pad into single tensor
-        inputs = nn.utils.rnn.pad_sequence(inputs, True, 1)
+        inputs = nn.utils.rnn.pad_sequence(inputs, True, PAD_IDX)
 
         encoder_hidden, decoder_logits = model(inputs, targets, encoder_hidden)
 

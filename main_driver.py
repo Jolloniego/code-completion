@@ -1,3 +1,4 @@
+import os
 import argparse
 import pickle
 
@@ -91,6 +92,16 @@ def get_model(model_id):
                              "3 for BaselineEncoderDecoderModel.")
 
 
+def load_model(model, model_name):
+    """
+    Loads the model if there is a save file with the same name. Allows for checkpoints.
+    :param model: The initialised model object.
+    :param model_name: The path to the saved model.
+    """
+    if os.path.isfile(model_name):
+        model.load_state_dict(torch.load(model_name))
+
+
 def train_model_next_token(model):
     """
     Trains the selected model (from args) for the next token prediction task on the next-token dataset.
@@ -148,6 +159,7 @@ if __name__ == '__main__':
     try:
         selected_model = get_model(args.model)
         model_save_name = args.model_path + '_' + mode_names[args.mode] + '_' + selected_model.save_name
+        load_model(selected_model, model_save_name)
         print("Model File:", model_save_name)
         mode_functions[args.mode](selected_model)
     except KeyError:

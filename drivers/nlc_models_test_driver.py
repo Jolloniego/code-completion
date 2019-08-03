@@ -10,7 +10,6 @@ from datasets.next_token_dataset import NextTokenCodeDataset, NextTokenCodeDatas
 
 def next_token_prediction_test(model, word_to_idx, device, model_path, args):
     # Load the model and set it to eval mode.
-    model.load_state_dict(torch.load(model_path))
     model.eval()
 
     # Get the data
@@ -48,7 +47,6 @@ def next_token_prediction_test(model, word_to_idx, device, model_path, args):
 
 def next_line_prediction_test(model, word_to_idx, device, model_path, args):
     # Load the model and set it to eval mode.
-    model.load_state_dict(torch.load(model_path))
     model.eval()
 
     # Get the data

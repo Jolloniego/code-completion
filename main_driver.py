@@ -127,8 +127,8 @@ def next_token_models_tests(model):
     Tests a model trained for the next token prediction task on both the next token prediction and the
     next line of code prediction.
     """
-    nt_models_test_driver.next_token_prediction_test(model, word_to_idx, device, model_save_name, args)
-    nt_models_test_driver.next_line_prediction_test(model, word_to_idx, device, model_save_name, args)
+    nt_models_test_driver.next_token_prediction_test(model, word_to_idx, device, args)
+    nt_models_test_driver.next_line_prediction_test(model, word_to_idx, device, args)
 
 
 def next_line_models_tests(model):
@@ -136,8 +136,8 @@ def next_line_models_tests(model):
     Tests a model trained for the next line prediction task on both the next token prediction and the
     next line of code prediction.
     """
-    nlc_models_test_driver.next_token_prediction_test(model, word_to_idx, device, model_save_name, args)
-    nlc_models_test_driver.next_line_prediction_test(model, word_to_idx, device, model_save_name, args)
+    nlc_models_test_driver.next_token_prediction_test(model, word_to_idx, device, args)
+    nlc_models_test_driver.next_line_prediction_test(model, word_to_idx, device, args)
 
 
 # Operates as a switch for the different modes.

@@ -8,7 +8,7 @@ from datasets.full_line_dataset import NextLineCodeDataset, NextLineCodeDatasetB
 from datasets.next_token_dataset import NextTokenCodeDataset, NextTokenCodeDatasetBatcher
 
 
-def next_token_prediction_test(model, word_to_idx, device, model_path, args):
+def next_token_prediction_test(model, word_to_idx, device, args):
     # Load the model and set it to eval mode.
     model.eval()
 
@@ -45,7 +45,7 @@ def next_token_prediction_test(model, word_to_idx, device, model_path, args):
     print("Next-Token Test Set | Accuracy {:.2f} % | Time taken {:.2f} seconds".format(correct / total * 100, time.time() - start))
 
 
-def next_line_prediction_test(model, word_to_idx, device, model_path, args):
+def next_line_prediction_test(model, word_to_idx, device, args):
     # Load the model and set it to eval mode.
     model.eval()
 

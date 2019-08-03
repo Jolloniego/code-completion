@@ -7,7 +7,7 @@ from datasets.full_line_dataset import NextLineCodeDataset, NextLineCodeDatasetB
 from datasets.next_token_dataset import NextTokenCodeDataset, NextTokenCodeDatasetBatcher
 
 
-def next_token_prediction_test(model, word_to_idx, device, model_path, args):
+def next_token_prediction_test(model, word_to_idx, device, args):
     # Load the model and set it to eval mode.
     model.eval()
 
@@ -41,7 +41,7 @@ def next_token_prediction_test(model, word_to_idx, device, model_path, args):
     print("Next-Token Test Set | Accuracy {:.2f} % | Time taken {:.2f} seconds".format(correct / total * 100, time.time() - start))
 
 
-def next_line_prediction_test(model, word_to_idx, device, model_path, args):
+def next_line_prediction_test(model, word_to_idx, device, args):
     # Load the model and set it to eval mode.
     model.eval()
 
@@ -58,8 +58,8 @@ def next_line_prediction_test(model, word_to_idx, device, model_path, args):
 
         for idx, current_input in enumerate(sample[0]):
 
-            previous_tokens = torch.tensor(current_input, device=device).unsqueeze(0)
-            y = torch.tensor(sample[1][idx])
+            previous_tokens = current_input.to(device).unsqueeze(0)
+            y = sample[1][idx].to(device)
 
             if file_changed:
                 # Feeding one word at a time, so hidden size should be 1.
@@ -70,11 +70,11 @@ def next_line_prediction_test(model, word_to_idx, device, model_path, args):
 
             final_output = []
             for _ in range(len(y)):
-                predicted_word = torch.argmax(torch.softmax(predictions, dim=1), dim=1).detach().cpu()
+                predicted_word = torch.argmax(torch.softmax(predictions, dim=1), dim=1).detach()
                 final_output.append(predicted_word)
-                predictions, hidden = model(predicted_word.unsqueeze(0).to(device), hidden)
+                predictions, hidden = model(predicted_word.unsqueeze(0), hidden)
 
-            final_output = torch.cat(final_output)
+            final_output = torch.cat(final_output).to(device)
             total += 1
             correct += 1 if torch.equal(final_output, y) else 0
 

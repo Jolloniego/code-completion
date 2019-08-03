@@ -79,7 +79,7 @@ def next_line_prediction_test(model, word_to_idx, device, model_path, args):
         del inputs
 
         # Convert logits into token predictions and free memory
-        token_predictions = decoder_logits.topk(1)[1].squeeze()
+        token_predictions = decoder_logits.topk(1)[1].squeeze().cpu()
         del decoder_logits
 
         total += len(targets)

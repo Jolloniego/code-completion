@@ -116,7 +116,7 @@ def validate(model, val_dataset, criterion, device, args):
         loss = criterion(decoder_logits.transpose(2, 1)[:, :, :padded_targets.size(1)], padded_targets)
 
         # Convert logits into token predictions and free memory
-        token_predictions = decoder_logits.topk(1)[1].squeeze()
+        token_predictions = decoder_logits.topk(1)[1].squeeze().cpu()
         del decoder_logits
 
         total += len(targets)

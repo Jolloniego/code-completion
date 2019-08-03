@@ -124,7 +124,9 @@ def validate(model, val_dataset, criterion, device, args):
 
         total += len(targets)
         for idx in range(len(targets)):
-            correct += 1 if torch.equal(token_predictions[idx][:len(targets[idx])], targets[idx]) else 0
+            current_target = targets[idx]
+            current_pred = token_predictions[idx][:len(current_target)].view(current_target.size())
+            correct += 1 if torch.equal(current_pred, current_target) else 0
 
         encoder_hidden = encoder_hidden.detach()
 

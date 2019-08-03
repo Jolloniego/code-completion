@@ -7,7 +7,7 @@ import torch.optim as optim
 from datasets.next_token_dataset import NextTokenCodeDataset, NextTokenCodeDatasetBatcher
 
 
-def train(model, word_to_idx, device, args):
+def train(model, word_to_idx, device, model_path, args):
     # Get training and validation data
     train_dataset = NextTokenCodeDataset(args.train_files, args.data_root, args.seq_length, word_to_idx)
     val_dataset = NextTokenCodeDataset(args.val_files, args.data_root, args.seq_length, word_to_idx)
@@ -70,6 +70,9 @@ def train(model, word_to_idx, device, args):
 
         # Reset the batcher
         train_dataset_batcher.reset_batcher()
+
+        # Checkpoint the model
+        torch.save(model.state_dict(), model_path)
 
     print("Done Training, total time taken: ", time.time() - train_start)
     return model

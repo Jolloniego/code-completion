@@ -8,7 +8,6 @@ from datasets.next_token_dataset import NextTokenCodeDataset, NextTokenCodeDatas
 
 
 def next_token_prediction_test(model, word_to_idx, device, args):
-    # Load the model and set it to eval mode.
     model.eval()
 
     # Get the data
@@ -42,7 +41,6 @@ def next_token_prediction_test(model, word_to_idx, device, args):
 
 
 def next_line_prediction_test(model, word_to_idx, device, args):
-    # Load the model and set it to eval mode.
     model.eval()
 
     # Get the data

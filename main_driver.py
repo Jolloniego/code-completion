@@ -107,8 +107,7 @@ def train_model_next_token(model):
     Trains the selected model (from args) for the next token prediction task on the next-token dataset.
     After training, saves the model to disk and runs the corresponding test suite.
     """
-    trained_model = nt_train_driver.train(model, word_to_idx, device, args)
-    torch.save(trained_model.state_dict(), model_save_name)
+    nt_train_driver.train(model, word_to_idx, device, model_save_name, args)
     next_token_models_tests(model)
 
 
@@ -117,8 +116,7 @@ def train_model_next_line(model):
     Trains the selected model for the next line of code prediction task on the next line dataset.
     After training saves the model on disk and runs the corresponding tests.
     """
-    trained_model = nlc_train_driver.train(model, word_to_idx, device, args)
-    torch.save(trained_model.state_dict(), model_save_name)
+    nlc_train_driver.train(model, word_to_idx, device, model_save_name, args)
     next_line_models_tests(model)
 
 

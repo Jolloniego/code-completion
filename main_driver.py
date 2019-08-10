@@ -9,6 +9,7 @@ from models.lstm_model import LSTMModel
 from models.baseline_model import BaselineRNNModel
 from models.attention_nt_model import AttentionLSTMModel
 from models.baseline_seq2seq import BaselineEncoderDecoderModel
+from models.attention_seq2seq import AttentionEncoderDecoderModel
 from drivers import nt_models_test_driver, nt_train_driver, nlc_train_driver, nlc_models_test_driver
 
 # Fix random seeds for reproducibility
@@ -40,7 +41,8 @@ parser.add_argument('--model', type=int, default=0,
                          '0 = Baseline model.\n'
                          '1 = Basic LSTM model.\n'
                          '2 = LSTM with Attention model\n'
-                         '3 = Baseline EncoderDecoder model')
+                         '3 = Baseline EncoderDecoder model\n'
+                         '4 = Attention EncoderDecoder model.')
 parser.add_argument('--vocab_path', type=str, default='data/vocab.p', help='Path to vocab.p file.')
 parser.add_argument('--cuda', type=str,
                     help='Cuda card to use, format: "cuda:int_number". Leave unused to use CPU')
@@ -87,9 +89,13 @@ def get_model(model_id):
         if model_id == 3:
             return BaselineEncoderDecoderModel(len(word_to_idx), seq_length=args.seq_length, embedding_dim=300,
                                                dropout=args.dropout, device=device).to(device)
+        elif model_id == 4:
+            return AttentionEncoderDecoderModel(len(word_to_idx), seq_length=args.seq_length, embedding_dim=300,
+                                               dropout=args.dropout, device=device).to(device)
         else:
             raise ValueError("Model not known or not applicable to selected mode. Available Models:\n"
-                             "3 for BaselineEncoderDecoderModel.")
+                             "3 for BaselineEncoderDecoderModel\n"
+                             "4 for AttentionEncoderDecoderModel.")
 
 
 def load_model(model, model_name):

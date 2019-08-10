@@ -98,7 +98,7 @@ class AttentionEncoderDecoderModel(nn.Module):
                 for idx in range(len(targets)):
                     decoder_input = first_input
                     current_hidden = decoder_hidden[:, idx].unsqueeze(0)
-                    for t_idx in range(len(targets[idx])):
+                    for t_idx in range(len(targets[idx][targets[idx] != 1])):
                         logits, current_hidden = self.decoder(decoder_input,
                                                               encoder_outs[idx].unsqueeze(0),
                                                               current_hidden)

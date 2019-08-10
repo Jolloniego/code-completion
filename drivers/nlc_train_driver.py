@@ -42,8 +42,8 @@ def train(model, word_to_idx, device, model_path, args):
                 encoder_hidden = encoder_hidden[:, :len(sample[0]), :]
 
             # Pad into tensors.
-            inputs = nn.utils.rnn.pad_sequence(sample[0], True, PAD_IDX).to(device)
-            targets = nn.utils.rnn.pad_sequence(sample[1], True, PAD_IDX).to(device)
+            inputs = torch.stack(sample[0]).to(device)
+            targets = torch.stack(sample[1]).to(device)
 
             encoder_hidden, decoder_logits = model(inputs, targets, encoder_hidden)
 
@@ -104,28 +104,28 @@ def validate(model, val_dataset, criterion, device, args):
         if len(sample[0]) != args.batch_size:
             encoder_hidden = encoder_hidden[:, :len(sample[0]), :]
 
-        targets = sample[1]
-
-        # Pad into single tensor
-        inputs = nn.utils.rnn.pad_sequence(sample[0], True, PAD_IDX).to(device)
+        inputs = torch.stack(sample[0]).to(device)
+        targets = torch.stack(sample[1]).to(device)
 
         encoder_hidden, decoder_logits = model(inputs, targets, encoder_hidden)
 
-        # Pad targets and free some memory
+        # Free some memory
         del inputs
-        padded_targets = nn.utils.rnn.pad_sequence(targets, True, PAD_IDX).to(device)
 
         # Track loss and accuracy
-        loss = criterion(decoder_logits.transpose(2, 1)[:, :, :padded_targets.size(1)], padded_targets)
+        loss = criterion(decoder_logits.transpose(2, 1), targets)
 
         # Convert logits into token predictions and free memory
-        token_predictions = decoder_logits.topk(1)[1].squeeze().cpu()
+        token_predictions = decoder_logits.topk(1)[1].view(targets.size(0), targets.size(1))
         del decoder_logits
 
-        total += len(targets)
-        for idx in range(len(targets)):
+        total += targets.size(0)
+        for idx in range(targets.size(0)):
+            # Get target and remove padding
             current_target = targets[idx]
-            current_pred = token_predictions[idx][:len(current_target)].view(current_target.size())
+            current_target = current_target[current_target != PAD_IDX]
+
+            current_pred = token_predictions[idx][:len(current_target)]
             correct += 1 if torch.equal(current_pred, current_target) else 0
 
         encoder_hidden = encoder_hidden.detach()

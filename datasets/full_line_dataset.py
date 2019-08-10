@@ -94,6 +94,7 @@ class NextLineCodeDataset(Dataset):
         :return: ndarray.
         """
         current_sequence = np.array([self.vocabulary.get(word, du.OOV_IDX) for word in token_list], dtype=np.long)[:self.seq_length]
+        current_sequence = np.pad(current_sequence, (0, self.seq_length - len(current_sequence)), mode='constant', constant_values=du.PAD_IDX)
         return current_sequence
 
 

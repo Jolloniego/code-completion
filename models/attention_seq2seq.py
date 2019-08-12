@@ -31,6 +31,7 @@ class AttentionDecoder(nn.Module):
         super(AttentionDecoder, self).__init__()
         self.hidden_size = 128
         self.device = device
+        self.dropout = nn.Dropout(0.5)
 
         self.embedding = nn.Embedding(output_size, self.hidden_size)
         self.attention = Attention(self.hidden_size)
@@ -39,7 +40,7 @@ class AttentionDecoder(nn.Module):
 
     def forward(self, x, encoder_outs, hidden):
         output = self.embedding(x)
-        output = F.relu(output)
+        output = self.dropout(output)
 
         batch_size = encoder_outs.size(0)
         attention = self.attention(encoder_outs, batch_size).view(batch_size, -1)
@@ -54,6 +55,7 @@ class AttentionDecoder(nn.Module):
             output = torch.cat((output, attention), dim=1).unsqueeze(0)
 
         output, hidden = self.gru(output, hidden)
+        output = torch.sigmoid(output)
         output = F.log_softmax(self.out(output), dim=2)
 
         return output, hidden

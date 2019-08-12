@@ -30,6 +30,7 @@ class BaselineDecoder(nn.Module):
         super(BaselineDecoder, self).__init__()
         self.hidden_size = 128
         self.device = device
+        self.dropout = nn.Dropout(0.5)
 
         self.embedding = nn.Embedding(output_size, self.hidden_size)
         self.gru = nn.GRU(self.hidden_size, self.hidden_size, batch_first=True)
@@ -37,12 +38,13 @@ class BaselineDecoder(nn.Module):
 
     def forward(self, x, hidden):
         output = self.embedding(x)
-        output = F.relu(output)
+        output = self.dropout(output)
 
         if self.training:
             output, hidden = self.gru(output, hidden)
         else:
             output, hidden = self.gru(output.view(1, 1, -1), hidden)
+        output = self.dropout(torch.sigmoid(output))
 
         output = F.log_softmax(self.out(output), dim=2)
 

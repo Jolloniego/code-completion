@@ -60,6 +60,8 @@ def train(model, word_to_idx, device, model_path, args):
             encoder_optimiser.step()
             decoder_optimiser.step()
 
+            encoder_hidden = encoder_hidden.detach()
+
             # Get the next batch
             sample, file_changed = train_dataset_batcher.get_batch()
 

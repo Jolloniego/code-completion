@@ -17,6 +17,7 @@ def next_token_prediction_test(model, word_to_idx, device, args):
     start = time.time()
 
     correct = 0
+    top_3_correct = 0
     total = 0
     sample, file_changed = test_dataset_batcher.get_batch()
     while sample is not None:
@@ -27,9 +28,14 @@ def next_token_prediction_test(model, word_to_idx, device, args):
             hidden = model.init_hidden(len(x))
 
         preds, hidden = model(x, hidden)
+        top3_preds = nn.functional.softmax(preds, dim=1).topk(3)[1].cpu()
         preds = torch.argmax(nn.functional.softmax(preds, dim=1), dim=1).detach().cpu()
 
         correct += (preds == y).sum().item()
+
+        for idx, target in enumerate(y):
+            top_3_correct += 1 if (target in top3_preds[idx]) else 0
+
         total += len(x)
 
         hidden = model.detach_hidden(hidden)
@@ -37,7 +43,8 @@ def next_token_prediction_test(model, word_to_idx, device, args):
         # Advance to the next batch
         sample, file_changed = test_dataset_batcher.get_batch()
 
-    print("Next-Token Test Set | Accuracy {:.2f} % | Time taken {:.2f} seconds".format(correct / total * 100, time.time() - start))
+    print("Next-Token Test Set | Accuracy {:.2f} % | Top 3 Accuracy {:.2f} % | Time taken {:.2f} seconds".
+          format(correct / total * 100, top_3_correct / total * 100, time.time() - start))
 
 
 def next_line_prediction_test(model, word_to_idx, device, args):

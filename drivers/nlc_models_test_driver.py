@@ -18,6 +18,7 @@ def next_token_prediction_test(model, word_to_idx, device, args):
     start = time.time()
 
     correct = 0
+    top3_correct = 0
     total = 0
     sample, file_changed = test_dataset_batcher.get_batch()
     while sample is not None:
@@ -30,18 +31,22 @@ def next_token_prediction_test(model, word_to_idx, device, args):
         encoder_hidden, decoder_logits = model(encoder_input, target_tensor, encoder_hidden)
 
         predictions = decoder_logits[:, :1, :].topk(1)[1].squeeze()
+        top3_predictions = decoder_logits[:, :1, :].topk(3)[1]
         del decoder_logits
 
         # Track accuracy
         total += len(sample[0])
         correct += torch.sum(torch.eq(predictions, target_tensor.squeeze())).item()
+        for idx, target in enumerate(target_tensor):
+            top3_correct += 1 if (target in top3_predictions[idx]) else 0
 
         encoder_hidden = encoder_hidden.detach()
 
         # Advance to the next batch
         sample, file_changed = test_dataset_batcher.get_batch()
 
-    print("Next-Token Test Set | Accuracy {:.2f} % | Time taken {:.2f} seconds".format(correct / total * 100, time.time() - start))
+    print("Next-Token Test Set | Accuracy {:.2f} % | Top 3 Accuracy {:.2f} % | Time taken {:.2f} seconds".
+          format(correct / total * 100, top3_correct / total * 100, time.time() - start))
 
 
 def next_line_prediction_test(model, word_to_idx, device, args):

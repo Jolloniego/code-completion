@@ -56,6 +56,7 @@ class AttentionDecoder(nn.Module):
 
         output, hidden = self.gru(output, hidden)
         output = torch.sigmoid(output)
+        output = self.dropout(output)
         output = F.log_softmax(self.out(output), dim=2)
 
         return output, hidden

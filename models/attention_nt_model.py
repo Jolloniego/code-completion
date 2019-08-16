@@ -29,6 +29,7 @@ class AttentionLSTMModel(nn.Module):
         outs = self.dropout(outs)
 
         outs = torch.sigmoid(self.fc0(outs))
+        outs = self.dropout(outs)
         logits = self.fc1(outs)
         return logits, hidden
 

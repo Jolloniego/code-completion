@@ -3,6 +3,7 @@ import time
 import torch
 import torch.nn as nn
 
+from utils.data_utils import PAD_IDX
 from datasets.full_line_dataset import NextLineCodeDataset, NextLineCodeDatasetBatcher
 from datasets.next_token_dataset import NextTokenCodeDataset, NextTokenCodeDatasetBatcher
 
@@ -65,6 +66,8 @@ def next_line_prediction_test(model, word_to_idx, device, args):
 
             previous_tokens = current_input.to(device).unsqueeze(0)
             y = sample[1][idx].to(device)
+            # Remove padding
+            y = y[y != PAD_IDX]
 
             if file_changed:
                 # Feeding one word at a time, so hidden size should be 1.

@@ -70,7 +70,7 @@ def next_line_prediction_test(model, word_to_idx, device, args):
             encoder_hidden = encoder_hidden[:, :len(sample[0]), :]
 
         inputs = torch.stack(sample[0]).to(device)
-        targets = torch.stack(sample[1])
+        targets = torch.stack(sample[1]).to(device)
 
         encoder_hidden, decoder_logits = model(inputs, targets, encoder_hidden)
 

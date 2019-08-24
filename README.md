@@ -1,3 +1,7 @@
+# MSc Dissertation Project: NLP for Code Completion
+This repository contains the code used for running the experiments described in MSc dissertation associated with it. 
+
+Instructions:
 - Create a 'data' folder in the root of the project and a 'repos' folder under it.
 - Place all cloned repositories in the 'repos' folder.
 - Place the train, test and validation.txt files in the root of the 'data' folder.
